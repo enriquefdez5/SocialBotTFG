@@ -130,6 +130,7 @@ object TwitterService {
   }
 
 
+  @tailrec
   def addToPostsList(index: Int, tweets: ListBuffer[Status], userPost: ListBuffer[Post], user: User){
     var indexLocal = index
     if (indexLocal < tweets.size-1){
