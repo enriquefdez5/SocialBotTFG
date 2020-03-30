@@ -1,5 +1,8 @@
 package model
 
+/**
+ * Enumeration object for social network platform
+ */
 object Plataforma extends Enumeration {
   type Plataforma = Value
 

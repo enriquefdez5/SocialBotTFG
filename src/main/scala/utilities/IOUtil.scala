@@ -2,10 +2,11 @@ package utilities
 
 import java.io.{BufferedWriter, File, FileWriter, IOException}
 
-import model.Post
+import org.apache.logging.log4j.{LogManager, Logger}
 
-class IOUtil {
+object IOUtil {
 
+  val logger: Logger = LogManager.getLogger()
 
   /**
    * This function write a Seq of Strings into a file.
@@ -21,13 +22,14 @@ class IOUtil {
     try{
       //It is needed for the RNN to add a mark symbol at the start and at the end of the sentence
       posts.foreach{ item =>
-        val sb: StringBuilder = new StringBuilder()
-        sb.append("&" + item + "%\n")
-        bw.write(sb.toString())
+        bw.write(s"&$item%\n")
       }
     }
     catch{
-      case ioexc: IOException =>  { println("Ups! Something went wrong writing on the file") }
+      case ioexc: IOException =>  {
+        logger.error("Ups! Something went wrong writing on the file")
+        ioexc.printStackTrace()
+      }
     }
     //Closing the buffer
     bw.close()

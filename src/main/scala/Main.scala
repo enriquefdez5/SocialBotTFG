@@ -1,19 +1,24 @@
-import twitterapi.{TwitterFilter, TwitterService}
 import utilities.IOUtil
+import twitterapi.TwitterService.getTweets
+import twitterapi.TwitterFilter.cleanTweets
+import org.apache.logging.log4j.{LogManager, Logger}
 
 object Main {
 
+  val logger: Logger = LogManager.getLogger()
+
+
   def main(args: Array[String]): Unit = {
-    println("AIBehaviour twitter says hi!")
+    logger.info("AIBehaviour twitter says hi!")
 
     //Twitter username where tweets will be search
     val twitterUser = "sanchezcastejon"
 
     //Get tweets from twitter
-    val tweets = new TwitterService().getTweets(twitterUser)
+    val tweets =  getTweets(twitterUser)
 
     //Clean those tweets
-    val tweetsFiltrados = new TwitterFilter().cleanTweets(tweets)
+    val filteredTweets = cleanTweets(tweets)
 
     //Search for FB post.
 
@@ -26,13 +31,12 @@ object Main {
 
 
     //Write text in file
-    new IOUtil().writeDataOnAFile(tweetsFiltrados)
+    IOUtil.writeDataOnAFile(filteredTweets)
 
     //Append FB text to the training file.
 
 
-
     //Training model could be another MainMethod
-    println("AIBheaviour twitter says good bye!")
+    logger.info("AIBheaviour twitter says good bye!")
   }
 }
