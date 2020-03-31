@@ -1,21 +1,25 @@
-import utilities.{IOUtil, Logger}
+import utilities.{ConfigRun, IOUtil, Logger}
 import twitterapi.TwitterService.getTweets
-import twitterapi.TwitterFilter.cleanTweets
+import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 import org.apache.logging.log4j.Level
 
 object Main {
 
   def main(args: Array[String]): Unit = {
+    val conf = new ConfigRun(args)
+
     Logger.log(Level.INFO,"AIBehaviour twitter says hi!" )
     //Twitter username where tweets will be search
     val twitterUser = "sanchezcastejon"
 
     //Get tweets from twitter
-    val tweets =  getTweets(twitterUser)
+    val tweets =  getTweets(conf, twitterUser)
 
     //Clean those tweets
     val filteredTweets = cleanTweets(tweets)
 
+    //Add marks to text for the neural network
+    val markedTweets = markTweets(filteredTweets)
     //Search for FB post.
 
     //Clean FB text
@@ -27,7 +31,7 @@ object Main {
 
 
     //Write text in file
-    IOUtil.writeDataOnAFile(filteredTweets)
+    IOUtil.writeDataOnAFile(markedTweets)
 
     //Append FB text to the training file.
 

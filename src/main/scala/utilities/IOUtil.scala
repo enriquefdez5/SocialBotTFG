@@ -18,9 +18,8 @@ object IOUtil {
     val bw = new BufferedWriter(new FileWriter(file))
 
     try{
-      //It is needed for the RNN to add a mark symbol at the start and at the end of the sentence
       posts.foreach{ item =>
-        bw.write(s"&$item%\n")
+        bw.write(item)
       }
     }
     catch{

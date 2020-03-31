@@ -24,4 +24,8 @@ object TwitterFilter {
     textWithoutMentionsNorLinks    //return is omitted
   }
 
+  def markTweets(tweets: Seq[String]): Seq[String] ={
+    tweets.map(tweet => s"&$tweet%\n")
+  }
+
 }

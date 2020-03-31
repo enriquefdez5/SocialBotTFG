@@ -54,6 +54,11 @@
             <version>11.0</version>
         </dependency>
         <dependency>
+            <groupId>org.rogach</groupId>
+            <artifactId>scallop_${scala.tools.version}</artifactId>
+            <version>3.1.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-core</artifactId>
             <version>${twitter4j.version}</version>

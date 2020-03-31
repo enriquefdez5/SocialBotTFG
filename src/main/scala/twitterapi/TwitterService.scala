@@ -3,7 +3,8 @@ package twitterapi
 //util libs
 import java.io.FileInputStream
 import java.util.Properties
-import utilities.Logger
+
+import utilities.{ConfigRun, Logger}
 import org.apache.logging.log4j.Level
 
 //scala libs
@@ -28,14 +29,14 @@ object TwitterService {
   val properties: Properties = new Properties()
   properties.load(new FileInputStream("src/main/resources/config.properties"))
 
-  def getTweets(userName: String): ListBuffer[Post] ={
+  def getTweets(conf: ConfigRun, userName: String): ListBuffer[Post] ={
     val tweets = ListBuffer[Status]()
 
     val pagInit = 1
     val totalTweetsGathered = 0
 
     //Obtain twitter client
-    val twitter = getTwitterClient
+    val twitter = getTwitterClient(conf)
 
     //Get profile data
     val userSearched = twitter.showUser(userName)
@@ -44,7 +45,7 @@ object TwitterService {
     //Create profile just in case I need it for NN or something
     val user = createUser(userSearched)
 
-    Logger.log(Level.DEBUG, "User searched ${userSearched.toString}")
+    Logger.log(Level.DEBUG, userSearched.toString)
 
     //Get ~3200 user tweets
     recursiveWhileLoop(twitter,totalTweetsGathered, pagInit, userName, user, tweets )
@@ -64,25 +65,26 @@ object TwitterService {
   @tailrec
   private def recursiveWhileLoop(twitter: Twitter, totalTweetsGathered: Int, pageInit: Int, userName: String, user: User,
                          tweets: ListBuffer[Status]): Unit ={
+    val initialSize = tweets.size
     if (totalTweetsGathered < properties.getProperty("maxNumberTweetsAllowed").toInt){
-      var newTweetsCall = 0
       try {
         val page = new Paging(pageInit+1, properties.getProperty("gatheringTweetsPageSize").toInt)
-        tweets.addAll(twitter.getUserTimeline(userName, page))
-        val newTweets = twitter.getUserTimeline(userName, page).size()
-
-        Logger.log(Level.DEBUG, s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets" )
-
-        newTweetsCall += newTweets
-
-        if (tweets.size() == tweets.size + newTweets){
-          //It could return something or at least break while loop
-          throw new TwitterException("There are no more new tweets to collect")
-        }
+        //New tweets
+        val newTweets = twitter.getUserTimeline(userName, page)
+        //Number of new tweets
+        val numberOfNewTweets = newTweets.size
+        //Add new tweets to list
+        tweets.addAll(newTweets)
+        Logger.log(Level.DEBUG, s"Gathered $numberOfNewTweets tweets" )
       }catch{
         case e: TwitterException => e.printStackTrace();
       }
-      recursiveWhileLoop(twitter,totalTweetsGathered+newTweetsCall, pageInit, userName, user, tweets)
+      if (tweets.size == initialSize) {
+        //Do nothing because there are no more tweets to collect
+      }
+      else{
+        recursiveWhileLoop(twitter,tweets.size, pageInit+1, userName, user, tweets)
+      }
     }
   }
 
@@ -90,13 +92,17 @@ object TwitterService {
    * Method for creating a twitter client instane
    * @return Twitter, a twitter client instance
    */
-  def getTwitterClient: Twitter ={
+  def getTwitterClient(conf: ConfigRun): Twitter ={
     val cb = new ConfigurationBuilder()
     cb.setDebugEnabled(true)
-      .setOAuthConsumerKey(credentials.getProperty("ConsumerTokenKey"))
-      .setOAuthConsumerSecret(credentials.getProperty("ConsumerTokenKeySecret"))
-      .setOAuthAccessToken(credentials.getProperty("AccessTokenKey"))
-      .setOAuthAccessTokenSecret(credentials.getProperty("AccessTokenKeySecret"))
+      .setOAuthConsumerKey(conf.consumerTokenKey())
+      .setOAuthConsumerSecret(conf.consumerTokenKeySecret())
+      .setOAuthAccessToken(conf.accessTokenKey())
+      .setOAuthAccessTokenSecret(conf.accessTokenKeySecret())
+//      .setOAuthConsumerKey(credentials.getProperty("ConsumerTokenKey"))
+//      .setOAuthConsumerSecret(credentials.getProperty("ConsumerTokenKeySecret"))
+//      .setOAuthAccessToken(credentials.getProperty("AccessTokenKey"))
+//      .setOAuthAccessTokenSecret(credentials.getProperty("AccessTokenKeySecret"))
     val tf = new TwitterFactory(cb.build)
     val twitter = tf.getInstance
     twitter
