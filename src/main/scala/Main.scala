@@ -1,16 +1,12 @@
-import utilities.IOUtil
+import utilities.{IOUtil, Logger}
 import twitterapi.TwitterService.getTweets
 import twitterapi.TwitterFilter.cleanTweets
-import org.apache.logging.log4j.{LogManager, Logger}
+import org.apache.logging.log4j.Level
 
 object Main {
 
-  val logger: Logger = LogManager.getLogger()
-
-
   def main(args: Array[String]): Unit = {
-    logger.info("AIBehaviour twitter says hi!")
-
+    Logger.log(Level.INFO,"AIBehaviour twitter says hi!" )
     //Twitter username where tweets will be search
     val twitterUser = "sanchezcastejon"
 
@@ -37,6 +33,6 @@ object Main {
 
 
     //Training model could be another MainMethod
-    logger.info("AIBheaviour twitter says good bye!")
+    Logger.log(Level.INFO,"AIBheaviour twitter says good bye!" )
   }
 }

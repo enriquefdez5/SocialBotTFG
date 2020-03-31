@@ -3,26 +3,22 @@ package twitterapi
 //util libs
 import java.io.FileInputStream
 import java.util.Properties
-
-import model.{UserInfo, UserStats}
-import org.apache.logging.log4j.{LogManager, Logger}
-
-import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
+import utilities.Logger
+import org.apache.logging.log4j.Level
 
 //scala libs
 import scala.collection.JavaConversions._
+import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 
 //app libs
-import model.{Plataforma, Post, User, ProfileImg}
+import model.{Plataforma, Post, User, UserInfo, UserStats, ProfileImg}
 
 //twitter4j libs
 import twitter4j.{Paging, Status, TwitterException, TwitterFactory, Twitter}
 import twitter4j.conf.ConfigurationBuilder
 
 object TwitterService {
-
-  val logger: Logger = LogManager.getLogger()
 
   //Read credentials file
   val credentials: Properties = new Properties()
@@ -43,12 +39,12 @@ object TwitterService {
 
     //Get profile data
     val userSearched = twitter.showUser(userName)
-    logger.debug(s"Showing $userName profile Info")
+    Logger.log(Level.DEBUG, s"Showing $userName profile Info")
 
     //Create profile just in case I need it for NN or something
     val user = createUser(userSearched)
 
-    logger.debug(userSearched.toString)
+    Logger.log(Level.DEBUG, "User searched ${userSearched.toString}")
 
     //Get ~3200 user tweets
     recursiveWhileLoop(twitter,totalTweetsGathered, pagInit, userName, user, tweets )
@@ -75,7 +71,7 @@ object TwitterService {
         tweets.addAll(twitter.getUserTimeline(userName, page))
         val newTweets = twitter.getUserTimeline(userName, page).size()
 
-        logger.debug(s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets")
+        Logger.log(Level.DEBUG, s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets" )
 
         newTweetsCall += newTweets
 

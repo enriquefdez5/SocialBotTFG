@@ -1,12 +1,10 @@
 package utilities
 
 import java.io.{BufferedWriter, File, FileWriter, IOException}
+import org.apache.logging.log4j.Level
 
-import org.apache.logging.log4j.{LogManager, Logger}
 
 object IOUtil {
-
-  val logger: Logger = LogManager.getLogger()
 
   /**
    * This function write a Seq of Strings into a file.
@@ -27,7 +25,7 @@ object IOUtil {
     }
     catch{
       case ioexc: IOException =>
-        logger.error("Ups! Something went wrong writing on the file")
+        Logger.log(Level.ERROR, "Ups! Something went wrong writing on the file")
         ioexc.printStackTrace()
     }
     //Closing the buffer
