@@ -7,10 +7,10 @@ object Plataforma extends Enumeration {
   type Plataforma = Value
 
   // Assigning values
-  val twitter = Value("Twitter")
-  val facebook = Value("Facebook")
+  val twitter: Value = Value("Twitter")
+  val facebook: Value = Value("Facebook")
   // Possible social network for obtaining data
-  val whatsapp = Value("WhatsApp?")
-  val instagram = Value("Instagram?")
+  val whatsapp: Value = Value("WhatsApp?")
+  val instagram: Value = Value("Instagram?")
 
 }

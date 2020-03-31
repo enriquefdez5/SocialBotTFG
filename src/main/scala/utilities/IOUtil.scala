@@ -1,10 +1,11 @@
 package utilities
 
 import java.io.{BufferedWriter, File, FileWriter, IOException}
-import org.apache.logging.log4j.Level
+
+import org.apache.logging.log4j.scala.Logging
 
 
-object IOUtil {
+object IOUtil extends Logging {
 
   /**
    * This function write a Seq of Strings into a file.
@@ -12,22 +13,21 @@ object IOUtil {
    * @param fileName. The file where the text should be written. By default it writes on the RNN dataSet.txt file
    *                that later will be use to train the RNN
    */
-  def writeDataOnAFile(posts: Seq[String], fileName: String = "./dataSet.txt"):Unit ={
+  def writeDataOnAFile(posts: Seq[String], fileName: String = "./dataSet.txt"): Unit = {
     // FileWriter
     val file = new File(fileName)
     val bw = new BufferedWriter(new FileWriter(file))
 
-    try{
+    try {
       posts.foreach{ item =>
         bw.write(item)
       }
     }
-    catch{
+    catch {
       case ioexc: IOException =>
-        Logger.log(Level.ERROR, "Ups! Something went wrong writing on the file")
-        ioexc.printStackTrace()
+        logger.error("Ups! Something went wrong writing on the file", ioexc)
     }
-    //Closing the buffer
+    // Closing the buffer
     bw.close()
   }
 }

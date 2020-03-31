@@ -7,7 +7,7 @@ package model
  * @param strId String, id value for user. Ej: ("321321")
  * @param profileImg ProfileImg, info about profile image
  */
-case class User(id: Long, strId:String, userInfo: UserInfo, userStats: UserStats, profileImg: ProfileImg )
+case class User(id: Long, strId: String, userInfo: UserInfo, userStats: UserStats, profileImg: ProfileImg)
 
 /**
  * Data class with profile info

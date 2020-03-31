@@ -1,9 +1,9 @@
 package model
 
-//model
+// model
 import Plataforma.Plataforma
 
-//twitter4j
+// twitter4j
 import twitter4j.GeoLocation
 
 case class Post(id: Long, user: User, text: String, createdAt: String, retweetsCount: Int,

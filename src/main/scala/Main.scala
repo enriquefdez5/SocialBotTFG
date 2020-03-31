@@ -1,42 +1,42 @@
-import utilities.{ConfigRun, IOUtil, Logger}
+import utilities.{ConfigRun, IOUtil}
 import twitterapi.TwitterService.getTweets
 import twitterapi.TwitterFilter.{cleanTweets, markTweets}
-import org.apache.logging.log4j.Level
+import org.apache.logging.log4j.scala.Logging
 
-object Main {
+object Main extends Logging{
 
   def main(args: Array[String]): Unit = {
     val conf = new ConfigRun(args)
 
-    Logger.log(Level.INFO,"AIBehaviour twitter says hi!" )
-    //Twitter username where tweets will be search
+    logger.info("AIBehaviour twitter says hi!")
+    // Twitter username where tweets will be search
     val twitterUser = "sanchezcastejon"
 
-    //Get tweets from twitter
-    val tweets =  getTweets(conf, twitterUser)
+    // Get tweets from twitter
+    val tweets = getTweets(conf, twitterUser)
 
-    //Clean those tweets
+    // Clean those tweets
     val filteredTweets = cleanTweets(tweets)
 
-    //Add marks to text for the neural network
+    // Add marks to text for the neural network
     val markedTweets = markTweets(filteredTweets)
-    //Search for FB post.
+    // Search for FB post.
 
-    //Clean FB text
+    // Clean FB text
 
-    //It could be done with Instagram too
-    //Search for FB post.
+    // It could be done with Instagram too
+    // Search for FB post.
 
-    //Clean FB text
+    // Clean FB text
 
 
-    //Write text in file
+    // Write text in file
     IOUtil.writeDataOnAFile(markedTweets)
 
-    //Append FB text to the training file.
+    // Append FB text to the training file.
 
 
-    //Training model could be another MainMethod
-    Logger.log(Level.INFO,"AIBheaviour twitter says good bye!" )
+    // Training model could be another MainMethod
+    logger.info("AIBheaviour twitter says good bye!")
   }
 }
