@@ -1,11 +1,9 @@
 package twitterapi
 
 import model.Post
+import org.apache.logging.log4j.scala.Logging
 
-import utilities.Logger
-import org.apache.logging.log4j.Level
-
-object TwitterFilter {
+object TwitterFilter extends Logging {
 
   /**
    * This function cleans tweets removing mentions(@Someone) and removing
@@ -18,8 +16,8 @@ object TwitterFilter {
     val textWithoutMentions = textFromTweets.map{ _.replaceAll("@\\w*", "") }
     val textWithoutMentionsNorLinks = textWithoutMentions.map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "") }
 
-    Logger.log(Level.DEBUG, "--------- Text is printed without words like @someone on it ---------")
-    Logger.log(Level.DEBUG, textWithoutMentionsNorLinks.toString())
+    logger.debug("--------- Text is printed without words like @someone on it ---------")
+    logger.debug(textWithoutMentionsNorLinks.toString)
 
     textWithoutMentionsNorLinks    //return is omitted
   }

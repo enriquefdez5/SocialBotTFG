@@ -3,22 +3,21 @@ package twitterapi
 //util libs
 import java.io.FileInputStream
 import java.util.Properties
-import utilities.Logger
-import org.apache.logging.log4j.Level
+
+import org.apache.logging.log4j.scala.Logging
 
 //scala libs
 import scala.collection.JavaConversions._
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 
 //app libs
 import model.{Plataforma, Post, User, UserInfo, UserStats, ProfileImg}
 
 //twitter4j libs
-import twitter4j.{Paging, Status, TwitterException, TwitterFactory, Twitter}
+import twitter4j.{Paging, Status, TwitterFactory, Twitter}
 import twitter4j.conf.ConfigurationBuilder
 
-object TwitterService {
+object TwitterService extends Logging {
 
   //Read credentials file
   val credentials: Properties = new Properties()
@@ -28,26 +27,23 @@ object TwitterService {
   val properties: Properties = new Properties()
   properties.load(new FileInputStream("src/main/resources/config.properties"))
 
-  def getTweets(userName: String): ListBuffer[Post] ={
-    val tweets = ListBuffer[Status]()
-
+  def getTweets(userName: String): Seq[Post] ={
     val pagInit = 1
-    val totalTweetsGathered = 0
 
     //Obtain twitter client
     val twitter = getTwitterClient
 
     //Get profile data
     val userSearched = twitter.showUser(userName)
-    Logger.log(Level.DEBUG, s"Showing $userName profile Info")
+    logger.debug(s"Showing $userName profile Info")
 
     //Create profile just in case I need it for NN or something
     val user = createUser(userSearched)
 
-    Logger.log(Level.DEBUG, "User searched ${userSearched.toString}")
+    logger.debug(s"User searched ${userSearched.toString}")
 
     //Get ~3200 user tweets
-    recursiveWhileLoop(twitter,totalTweetsGathered, pagInit, userName, user, tweets )
+    val tweets = recursiveWhileLoop(twitter, pagInit, userName, user, Seq())
     tweets.map(tweet => Post( tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
       tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter))
   }
@@ -55,42 +51,30 @@ object TwitterService {
   /**
    * Function for collecting tweets
    * @param twitter, client to request operation
-   * @param totalTweetsGathered, amount of tweets collected in each call, max is ~3200
    * @param pageInit, number of page from which tweets are collected
    * @param userName, user profile where to search
    * @param user, app object that represents a user profile
    * @param tweets, list of tweets collected
    */
   @tailrec
-  private def recursiveWhileLoop(twitter: Twitter, totalTweetsGathered: Int, pageInit: Int, userName: String, user: User,
-                         tweets: ListBuffer[Status]): Unit ={
-    if (totalTweetsGathered < properties.getProperty("maxNumberTweetsAllowed").toInt){
-      var newTweetsCall = 0
-      try {
-        val page = new Paging(pageInit+1, properties.getProperty("gatheringTweetsPageSize").toInt)
-        tweets.addAll(twitter.getUserTimeline(userName, page))
-        val newTweets = twitter.getUserTimeline(userName, page).size()
+  private def recursiveWhileLoop(twitter: Twitter, pageInit: Int, userName: String, user: User,
+                         tweets: Seq[Status]): Seq[Status] ={
+    if (tweets.size < properties.getProperty("maxNumberTweetsAllowed").toInt) {
+      val page = new Paging(pageInit, properties.getProperty("gatheringTweetsPageSize").toInt)
+      val newTweets: Seq[Status] = twitter.getUserTimeline(userName, page).toSeq
 
-        Logger.log(Level.DEBUG, s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets" )
+      logger.debug(s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets")
 
-        newTweetsCall += newTweets
+      recursiveWhileLoop(twitter, pageInit + 1, userName, user, tweets ++ newTweets)
 
-        if (tweets.size() == tweets.size + newTweets){
-          //It could return something or at least break while loop
-          throw new TwitterException("There are no more new tweets to collect")
-        }
-      }catch{
-        case e: TwitterException => e.printStackTrace();
-      }
-      recursiveWhileLoop(twitter,totalTweetsGathered+newTweetsCall, pageInit, userName, user, tweets)
-    }
+    } else tweets
   }
 
   /**
    * Method for creating a twitter client instane
    * @return Twitter, a twitter client instance
    */
-  def getTwitterClient: Twitter ={
+  private def getTwitterClient: Twitter ={
     val cb = new ConfigurationBuilder()
     cb.setDebugEnabled(true)
       .setOAuthConsumerKey(credentials.getProperty("ConsumerTokenKey"))
