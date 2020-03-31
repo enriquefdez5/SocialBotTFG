@@ -1,10 +1,10 @@
 package twitterapi
 
-import org.apache.logging.log4j.LogManager
-import twitter4j.Status
+import model.Post
+import org.apache.logging.log4j.{LogManager, Logger}
 
 object TwitterFilter {
-  val logger = LogManager.getLogger()
+  val logger: Logger = LogManager.getLogger()
 
   /**
    * This function cleans tweets removing mentions(@Someone) and removing
@@ -12,8 +12,8 @@ object TwitterFilter {
    * @param tweets. A Seq of Status(twitter4j class that contais tweet info) to be cleaned
    * @return A Seq of Strings containing the Status text without mentions or links.
    */
-  def cleanTweets(tweets: Seq[Status]): Seq[String] ={
-    val textFromTweets = tweets.map{ _.getText }
+  def cleanTweets(tweets: Seq[Post]): Seq[String] ={
+    val textFromTweets = tweets.map{ _.text }
     val textWithoutMentions = textFromTweets.map{ _.replaceAll("@\\w*", "") }
     val textWithoutMentionsNorLinks = textWithoutMentions.map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "") }
 
@@ -21,7 +21,6 @@ object TwitterFilter {
     logger.debug(textWithoutMentionsNorLinks)
 
     textWithoutMentionsNorLinks    //return is omitted
-
   }
 
 }

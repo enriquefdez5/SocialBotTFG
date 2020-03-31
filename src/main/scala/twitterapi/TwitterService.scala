@@ -8,7 +8,6 @@ import model.{UserInfo, UserStats}
 import org.apache.logging.log4j.{LogManager, Logger}
 
 import scala.annotation.tailrec
-import scala.collection.convert.Wrappers.MutableSeqWrapper
 import scala.collection.mutable.ListBuffer
 
 //scala libs
@@ -33,12 +32,10 @@ object TwitterService {
   val properties: Properties = new Properties()
   properties.load(new FileInputStream("src/main/resources/config.properties"))
 
-  def getTweets(userName: String): Seq[Status] ={
-//    val tweets = Seq[Status]()
+  def getTweets(userName: String): ListBuffer[Post] ={
     val tweets = ListBuffer[Status]()
-    val userPost = ListBuffer[Post]()
 
-    val paginit = 1
+    val pagInit = 1
     val totalTweetsGathered = 0
 
     //Obtain twitter client
@@ -54,91 +51,42 @@ object TwitterService {
     logger.debug(userSearched.toString)
 
     //Get ~3200 user tweets
-    recursiveWhileLoop(twitter,totalTweetsGathered, paginit, userName, user, userPost, tweets )
-//    while (totalTweetsGathered < 3000) {
-//      try {
-//        val size = tweets.size
-//        paginit+=1
-//        val page = new Paging(paginit, 200)
-//        tweets.addAll(twitter.getUserTimeline(userName, page))
-//        val newTweets = twitter.getUserTimeline(userName, page).size()
-//
-//        logger.debug("Gathered " + twitter.getUserTimeline(userName, page).size() + " tweets")
-//
-//        totalTweetsGathered += newTweets
-//
-//        //Save each tweet colledted as app model, so it can be used for training data
-//        for (tweet <- tweets){
-//          val post = Post( tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
-//            tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter)
-//          userPost.add(post)
-//        }
-//        if (tweets.size() == size){
-//          //It could return something or at least break while loop
-//        }
-//      }catch{
-//        case e: TwitterException => e.printStackTrace();
-//      }
-//    }
-    tweets
+    recursiveWhileLoop(twitter,totalTweetsGathered, pagInit, userName, user, tweets )
+    tweets.map(tweet => Post( tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
+      tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter))
   }
 
   /**
    * Function for collecting tweets
    * @param twitter, client to request operation
    * @param totalTweetsGathered, amount of tweets collected in each call, max is ~3200
-   * @param paginit, number of page from which tweets are collected
+   * @param pageInit, number of page from which tweets are collected
    * @param userName, user profile where to search
    * @param user, app object that represents a user profile
-   * @param userPost, list of app object
    * @param tweets, list of tweets collected
    */
   @tailrec
-  def recursiveWhileLoop(twitter: Twitter, totalTweetsGathered: Int, paginit: Int, userName: String, user: User,
-                         userPost: ListBuffer[Post], tweets: ListBuffer[Status]): Unit ={
-    var paginitLocal: Int = paginit
-    var totalTweetsGatheredLocal: Int = totalTweetsGathered
-
-    if (totalTweetsGatheredLocal < properties.getProperty("maxNumberTweetsAllowed").toInt){
+  private def recursiveWhileLoop(twitter: Twitter, totalTweetsGathered: Int, pageInit: Int, userName: String, user: User,
+                         tweets: ListBuffer[Status]): Unit ={
+    if (totalTweetsGathered < properties.getProperty("maxNumberTweetsAllowed").toInt){
+      var newTweetsCall = 0
       try {
-        val size = tweets.size
-        paginitLocal+=1
-        val page = new Paging(paginit, properties.getProperty("gatheringTweetsPageSize").toInt)
+        val page = new Paging(pageInit+1, properties.getProperty("gatheringTweetsPageSize").toInt)
         tweets.addAll(twitter.getUserTimeline(userName, page))
         val newTweets = twitter.getUserTimeline(userName, page).size()
 
         logger.debug(s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets")
 
-        totalTweetsGatheredLocal += newTweets
+        newTweetsCall += newTweets
 
-        //Save each tweet colledted as app model, so it can be used for training data
-        val index = 0
-        addToPostsList(index,tweets, userPost, user)
-//        for (tweet <- tweets){
-//          userPost.add(Post( tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
-//            tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter))
-//        }
-        if (tweets.size() == size){
+        if (tweets.size() == tweets.size + newTweets){
           //It could return something or at least break while loop
           throw new TwitterException("There are no more new tweets to collect")
         }
       }catch{
         case e: TwitterException => e.printStackTrace();
       }
-      recursiveWhileLoop(twitter,totalTweetsGatheredLocal, paginitLocal, userName, user, userPost, tweets)
-    }
-  }
-
-
-  @tailrec
-  def addToPostsList(index: Int, tweets: ListBuffer[Status], userPost: ListBuffer[Post], user: User){
-    var indexLocal = index
-    if (indexLocal < tweets.size-1){
-      val tweet = tweets.get(indexLocal)
-      userPost.add(Post( tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
-                  tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter))
-      indexLocal+=1
-      addToPostsList(indexLocal, tweets,userPost, user)
+      recursiveWhileLoop(twitter,totalTweetsGathered+newTweetsCall, pageInit, userName, user, tweets)
     }
   }
 
@@ -164,7 +112,7 @@ object TwitterService {
    * @param userSearched with info needed to create the app User
    * @return User, app user object
    */
-  def createUser(userSearched: twitter4j.User):User = User(id = userSearched.getId, strId = userSearched.getId.toString,
+  private def createUser(userSearched: twitter4j.User):User = User(id = userSearched.getId, strId = userSearched.getId.toString,
     userInfo = UserInfo(name = userSearched.getName,
       description = userSearched.getDescription, createdAt = userSearched.getCreatedAt.toString,
       location = userSearched.getLocation, profileUrl = userSearched.getURL),

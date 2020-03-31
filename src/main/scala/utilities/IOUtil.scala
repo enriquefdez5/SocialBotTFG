@@ -26,10 +26,9 @@ object IOUtil {
       }
     }
     catch{
-      case ioexc: IOException =>  {
+      case ioexc: IOException =>
         logger.error("Ups! Something went wrong writing on the file")
         ioexc.printStackTrace()
-      }
     }
     //Closing the buffer
     bw.close()
