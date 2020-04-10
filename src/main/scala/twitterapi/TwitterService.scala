@@ -40,7 +40,7 @@ object TwitterService extends Logging {
     logger.debug(userSearched.toString)
 
     // Get ~3200 user tweets
-    val tweets = recursiveWhileLoop(twitter, pagInit, userName, user, Seq())
+    val tweets = gatherTweets(twitter, pagInit, userName, user, Seq())
     tweets.map(tweet => Post(tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
       tweet.getFavoriteCount, tweet.getGeoLocation, tweet.isRetweeted, tweet.isFavorited, Plataforma.twitter))
   }
@@ -54,13 +54,13 @@ object TwitterService extends Logging {
      * @param tweets, list of tweets collected
      */
   @tailrec
-  private def recursiveWhileLoop(twitter: Twitter, pageInit: Int, userName: String, user: User,
+  private def gatherTweets(twitter: Twitter, pageInit: Int, userName: String, user: User,
                                  tweets: Seq[Status]): Seq[Status] = {
     if (tweets.size < properties.getProperty("maxNumberTweetsAllowed").toInt) {
       val page = new Paging(pageInit, properties.getProperty("gatheringTweetsPageSize").toInt)
       val newTweets: Seq[Status] = twitter.getUserTimeline(userName, page).toSeq
-      logger.debug(s"Gathered ${twitter.getUserTimeline(userName, page).size()} tweets")
-      recursiveWhileLoop(twitter, pageInit + 1, userName, user, tweets ++ newTweets)
+      logger.debug(s"Gathered ${newTweets.size()} tweets")
+      gatherTweets(twitter, pageInit + 1, userName, user, tweets ++ newTweets)
     }
     else { tweets }
   }

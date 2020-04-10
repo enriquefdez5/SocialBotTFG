@@ -4,4 +4,5 @@
 dataSet.txt
 MvnAIBehaviour.iml
 scalastyle_config.xml
+scalastyle-output.xml
 credentials.properties
