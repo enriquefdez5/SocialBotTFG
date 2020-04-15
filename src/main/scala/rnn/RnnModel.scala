@@ -75,23 +75,26 @@ object RnnModel extends Logging{
     net
   }
 
-
+  @tailrec
   def training(splittedData: Array[String], net: MultiLayerNetwork, index: Int): Unit = {
-    val learnString = splittedData(index)
-    /*
-    * CREATE OUR TRAINING DATA
-    */
-    // create input and output arrays: SAMPLE_INDEX, INPUT_NEURON,
-    // SEQUENCE_POSITION
-    val input: INDArray = Nd4j.zeros(1, LEARNSTRING_CHARS_LIST.size(), learnString.length)
-    val labels: INDArray = Nd4j.zeros(1, LEARNSTRING_CHARS_LIST.size(), learnString.length)
-    // loop through our sample-sentence
-    val trainingData: DataSet = createTrainingData(0, learnString, input, labels)
-    // some epochs
-    // training and guessing characters
-    epochTraining(0, net, trainingData, LEARNSTRING_CHARS_LIST,
-      learnString.toCharArray)
-    logger.debug("epoch")
+    if (index < splittedData.length){
+      val learnString = splittedData(index)
+      /*
+      * CREATE OUR TRAINING DATA
+      */
+      // create input and output arrays: SAMPLE_INDEX, INPUT_NEURON,
+      // SEQUENCE_POSITION
+      val input: INDArray = Nd4j.zeros(1, LEARNSTRING_CHARS_LIST.size(), learnString.length)
+      val labels: INDArray = Nd4j.zeros(1, LEARNSTRING_CHARS_LIST.size(), learnString.length)
+      // loop through our sample-sentence
+      val trainingData: DataSet = createTrainingData(0, learnString, input, labels)
+      // some epochs
+      // training and guessing characters
+      epochTraining(0, net, trainingData, LEARNSTRING_CHARS_LIST,
+        learnString.toCharArray)
+      logger.debug("epoch")
+      training(splittedData, net, index+1)
+    }
   }
 
 
