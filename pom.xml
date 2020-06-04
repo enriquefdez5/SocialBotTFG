@@ -68,10 +68,25 @@
             <artifactId>facebook4j-core</artifactId>
             <version>${facebook4j.version}</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.deeplearning4j</groupId>-->
+<!--            <artifactId>deeplearning4j-core</artifactId>-->
+<!--            <version>${deeplearning4j.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-core</artifactId>
+            <artifactId>deeplearning4j-cuda-10.2</artifactId>
             <version>${deeplearning4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>cuda-platform</artifactId>
+            <version>10.2-7.6-1.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>cuda-platform-redist</artifactId>
+            <version>10.2-7.6-1.5.2</version>
         </dependency>
         <dependency>
             <groupId>org.nd4j</groupId>
@@ -79,7 +94,6 @@
             <version>${nd4j.version}</version>
         </dependency>
     </dependencies>
-
     <build>
         <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
