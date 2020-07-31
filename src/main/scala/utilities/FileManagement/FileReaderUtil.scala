@@ -20,7 +20,6 @@ object FileReaderUtil extends Logging {
     val result = new StringBuffer
     try{
       addData(result, br, br.readLine)
-
     }
     catch {
       case ioexc: IOException =>

@@ -1,5 +1,6 @@
 package twitterapi
 
+import com.vdurmont.emoji.EmojiParser
 import model.Post
 import org.apache.logging.log4j.scala.Logging
 
@@ -13,14 +14,20 @@ object TwitterFilter extends Logging{
    */
   def cleanTweets(tweets: Seq[Post]): Seq[String] = {
     logger.debug("")
-    tweets.map{ _.text }.map{ _.replaceAll("@\\w*", "") }
-      .map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "") }
-      .map{ _.replaceAll("RT : ", "")}
-      .map{ _.replaceAll( "#", "")}
+      tweets
+        .map{ _.text }
+        .map{ _.replaceAll("\\w*\\u2026", "")}   // replace last word followed by "..." e.g adios...
+        .map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "") }    // replace any link e.g http://google.com
+        .map{ _.replaceAll( "(?:\\uD83C[\\uDF00-\\uDFFF])|(?:\\uD83D[\\uDC00-\\uDDFF])", "" )}
+        // replace unicode by blocks emotes
+        .map{ EmojiParser.removeAllEmojis(_)}   // replace Emojis found e.g :)
   }
 
   def markTweets(tweets: Seq[String]): Seq[String] = {
-    tweets.map(tweet => s"&$tweet%\n")
-  }
+    val filtered = tweets.filterNot(_.contains("RT @"))
+    filtered
+//      .map{tweet => s"& $tweet\n"}
+      .map{tweet => s"$tweet\n"}
 
+  }
 }

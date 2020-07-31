@@ -1,7 +1,6 @@
 import utilities.ConfigRun
 import twitterapi.TwitterService.getTweets
 import twitterapi.TwitterFilter.{cleanTweets, markTweets}
-import facebookapi.FacebookService.getNewsFeed
 import org.apache.logging.log4j.scala.Logging
 import utilities.FileManagement.{FileReaderUtil, FileWriterUtil}
 
@@ -24,6 +23,7 @@ object Main extends Logging {
 
     // Add marks to text for the neural network
     val markedTweets = markTweets(filteredTweets)
+
 
     // Search for FB post.
 //    logger.info("Searching for facebook posts")
