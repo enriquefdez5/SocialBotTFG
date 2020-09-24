@@ -25,7 +25,7 @@ object MainDl4jExample extends Logging {
     // Read properties file
     val properties: Properties = new Properties()
     properties.load(new FileInputStream("src/main/resources/config.properties"))
-    // Conf parameters
+    // Neural network conf parameters
     val confItem: NeuralNetworkConfItem = NeuralNetworkConfItem(
       properties.getProperty("trainingSeed").toInt,
       properties.getProperty("trainingLearningRate").toDouble,
@@ -42,6 +42,7 @@ object MainDl4jExample extends Logging {
       properties.getProperty("hiddenLayerCont").toInt
 
     )
+    // Training conf parameters
     val trainingConfItem: NeuralNetworkTrainingConfItem = NeuralNetworkTrainingConfItem(
       properties.getProperty("trainingMiniBatchSize").toInt,              // Size of mini batch to use when  training
       properties.getProperty("trainingExampleLength").toInt,
@@ -241,7 +242,7 @@ object MainDl4jExample extends Logging {
                              iter: CharacterIterator, initializationToReturn: INDArray): Unit = {
     if (idx < init.length) {
       val idxToAdd = iter.convertCharacterToIndex(init(idx))
-      initializationToReturn.putScalar(Array[Int](1, idxToAdd, idxToAdd), 1.0f)
+      initializationToReturn.putScalar(Array[Int](1, idxToAdd, idx), 1.0f)
       addCharToArray(init, idx + 1, iter, initializationToReturn)
     }
   }
