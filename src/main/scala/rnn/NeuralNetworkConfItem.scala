@@ -1,16 +1,25 @@
 package rnn
 
-import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.Updater
+import org.deeplearning4j.nn.conf.BackpropType
 import org.deeplearning4j.nn.weights.WeightInit
+import org.nd4j.linalg.activations.Activation
+import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 
 case class NeuralNetworkConfItem(seed: Int,
-                                 biasInit: Double,
-                                 miniBatch: Boolean,
                                  learningRate: Double,
                                  weightInit: WeightInit,
+                                 lossFunction: LossFunction,
+                                 activationLSTM: Activation,
+                                 activationRNN: Activation,
                                  l2: Double,
+                                 tbpttType: BackpropType,
                                  tbpttLength: Int,
-                                 optimizationAlgorithm: OptimizationAlgorithm,
-                                 rmsDecay: Double
+                                 dropOut: Double,
+                                 layerWidth: Int,
+                                 miniBatchSize: Int,
+                                 exampleLength: Int,
+                                 numEpochs: Int,
+                                 generateSamplesEveryNMinibatches: Int,
+                                 nCharactersToSample: Int,
+                                 generationInitialization: String
                                 )

@@ -24,21 +24,17 @@ object TwitterService extends Logging {
   val properties: Properties = new Properties()
   properties.load(new FileInputStream("src/main/resources/config.properties"))
 
+  // Get tweets from twitterAPI
   def getTweets(conf: ConfigRun, userName: String): Seq[Post] = {
     val pagInit = 1
-
     // Obtain twitter client
     val twitter = getTwitterClient(conf)
-
     // Get profile data
     val userSearched = twitter.showUser(userName)
     logger.debug(s"Showing $userName profile Info")
-
     // Create profile just in case I need it for NN or something
     val user = createUser(userSearched)
-
     logger.debug(userSearched.toString)
-
     // Get ~3200 user tweets
     val tweets = gatherTweets(twitter, pagInit, userName, user, Seq())
     tweets.map(tweet => Post(tweet.getId, user, tweet.getText, tweet.getCreatedAt.toString, tweet.getRetweetCount,
@@ -65,8 +61,6 @@ object TwitterService extends Logging {
     else { tweets }
   }
 
-
-
   /**
    * Method for creating a twitter client instane
    * @return Twitter, a twitter client instance
@@ -82,7 +76,6 @@ object TwitterService extends Logging {
     val twitter = tf.getInstance
     twitter
   }
-
 
   /**
    *  Method for creating an object with user info needed

@@ -34,5 +34,4 @@ object FileWriterUtil extends Logging{
     // Closing the buffer
     bw.close()
   }
-
 }

@@ -10,8 +10,15 @@ import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 
-class CharacterIterator(miniBatchSize: Int, exampleLength: Int, validCharacters: String, rng: Random,
+import scala.annotation.tailrec
+
+class CharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
                         splittedData: String) extends DataSetIterator with Logging {
+
+  // Valid chars used for training
+  //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\"\n',.?;()[]{}:!-#@ "
+  //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
+  val validCharacters = "abcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
 
   // Offsets for the start of each example
   val exampleStartOffsets: util.LinkedList[Int] = new util.LinkedList[Int]
@@ -33,44 +40,66 @@ class CharacterIterator(miniBatchSize: Int, exampleLength: Int, validCharacters:
     charToIdx
   }
 
+
   def setFileCharacters(): Array[Char] = {
-    var fileCharacterToReturn: Array[Char] = null
-
-    val newLineValid: Boolean = charToIdxMap.containsKey('\n')
+    // Split file into lines
     val lines: Array[String] = splittedData.split("\n")
+    // Get file max size
+    val linesSize: Array[String] = lines.clone()
+    val maxSize = linesSize.map(s => s.length).sum
 
-    var maxSize: Int = lines.length
-    lines.foreach(s => maxSize += s.length)
+    // Get characters from lines and show info of character readed
+    val fileCharacterToReturn: util.ArrayList[Char] = new util.ArrayList[Char]()
+    val currentIndex: Int = 0
+    readLines(fileCharacterToReturn, lines, currentIndex)
+    checkLength(fileCharacterToReturn)
+    showInfo(maxSize, fileCharacterToReturn)
 
-    val characters: Array[Char] = new Array[Char](maxSize)
-    var currentIndex: Int = 0
-    lines.foreach(s => {
-      val thisLine = s.toCharArray
+    // Transform into array
+    val idx = 0
+    val arrayToReturn: Array[Char] = new Array[Char](fileCharacterToReturn.size())
+    transformIntoArray(fileCharacterToReturn, arrayToReturn, idx)
+    arrayToReturn
+  }
+
+  private def showInfo(maxSize: Int, fileCharacterToReturn: util.ArrayList[Char]): Unit = {
+    val fileCharacterSize = fileCharacterToReturn.size
+    val nRemoved = maxSize - fileCharacterSize
+    logger.debug("Loaded and converted file: " + fileCharacterSize + " valid characters of " + maxSize + "" +
+      " total characters (" + nRemoved + " removed")
+    logger.debug("Number of characters in file: " + fileCharacterSize)
+  }
+
+  private def checkLength(fileCharacterToReturn: util.ArrayList[Char]): Unit = {
+    if (exampleLength >= fileCharacterToReturn.size) {
+      throw new IllegalArgumentException("exampleLength=" + exampleLength + "cannot exceed number of valid " +
+        "characters in file (" + fileCharacterToReturn.size + ")")
+    }
+  }
+
+  @tailrec
+  private def transformIntoArray(fileCharacterToReturn: util.ArrayList[Char], arrayToReturn: Array[Char], idx: Int)
+  : Unit = {
+    if (idx < fileCharacterToReturn.size()) {
+      arrayToReturn(idx) = fileCharacterToReturn.get(idx)
+      transformIntoArray(fileCharacterToReturn, arrayToReturn, idx + 1)
+    }
+  }
+
+  @tailrec
+  private def readLines(fileCharacterToReturn: util.ArrayList[Char], lines: Array[String], idx: Int): Unit = {
+    if (idx < lines.length) {
+      val thisLine = lines(idx).toCharArray
       thisLine.foreach(character => {
         if (charToIdxMap.containsKey(character)) {
-          currentIndex+=1
-          characters(currentIndex) = character
+          fileCharacterToReturn.add(character)
         }
       })
-      if (newLineValid) {
-        currentIndex+=1
-        characters(currentIndex) = '\n'
+      if (charToIdxMap.containsKey('\n')) {
+        fileCharacterToReturn.add('\n')
       }
-    })
-    if (currentIndex == characters.length) {
-      fileCharacterToReturn = characters
+      readLines(fileCharacterToReturn, lines, idx + 1)
     }
-    else {
-      fileCharacterToReturn = util.Arrays.copyOfRange(characters, 0, currentIndex)
-    }
-    if (exampleLength >= fileCharacterToReturn.length) {
-      throw new IllegalArgumentException("exampleLength=" + exampleLength + "cannot exceed number of valid " +
-        "characters in file (" + fileCharacterToReturn.length + ")")
-    }
-    val nRemoved = maxSize - fileCharacterToReturn.length
-    logger.debug("Loaded and converted file: " + fileCharacterToReturn.length + " valid characters of " + maxSize + "" +
-      " total characters (" + nRemoved + " removed")
-    fileCharacterToReturn
   }
 
 
@@ -87,20 +116,34 @@ class CharacterIterator(miniBatchSize: Int, exampleLength: Int, validCharacters:
     val input: INDArray = Nd4j.create(Array[Int](currMiniBatchSize, validCharacters.length, exampleLength), 'f')
     val labels: INDArray = Nd4j.create(Array[Int](currMiniBatchSize, validCharacters.length, exampleLength ), 'f')
 
-    for(i <- 0 until currMiniBatchSize) {
+    val idx = 0
+    createDataSet(input, labels, currMiniBatchSize, idx)
+    new DataSet(input, labels)
+  }
+
+  @tailrec
+  private def createDataSet(input: INDArray, labels: INDArray, currMiniBatchSize: Int, idx: Int): Unit = {
+    if (idx < currMiniBatchSize) {
       val startIdx: Int = exampleStartOffsets.removeFirst()
       val endIdx: Int = startIdx + exampleLength
-      var currCharIdx: Int = charToIdxMap.get(fileCharacters(startIdx))    // Current input
-      var c = 0
-      for(j <- startIdx + 1 until endIdx) {
-        val nextCharIdx = charToIdxMap.get(fileCharacters(j))
-        input.putScalar(Array[Int](i, currCharIdx, c), 1.0)
-        labels.putScalar(Array[Int](i, nextCharIdx, c), 1.0)
-        currCharIdx = nextCharIdx
-        c = c + 1
-      }
+
+      val currCharIdx: Int = charToIdxMap.get(fileCharacters(startIdx))    // Current input
+      val c = 0
+      val secondIdx = startIdx + 1
+      fillArrays(input, labels, currCharIdx, idx, secondIdx, endIdx, c)
+      createDataSet(input, labels, currMiniBatchSize, idx + 1)
     }
-    new DataSet(input, labels)
+  }
+
+  @tailrec
+  private def fillArrays(input: INDArray, labels: INDArray, currCharIdx: Int,
+                         idx: Int, secondIdx: Int, endIdx: Int, c: Int): Unit = {
+    if (secondIdx < endIdx) {
+      val nextCharIdx = charToIdxMap.get(fileCharacters(secondIdx))
+      input.putScalar(Array[Int](idx, currCharIdx, c), 1.0)
+      labels.putScalar(Array[Int](idx, nextCharIdx, c), 1.0)
+      fillArrays(input, labels, nextCharIdx, idx, secondIdx + 1, endIdx, c + 1)
+    }
   }
 
   override def inputColumns(): Int = validCharacters.length
@@ -144,6 +187,6 @@ class CharacterIterator(miniBatchSize: Int, exampleLength: Int, validCharacters:
   }
 
   def convertIndexToChar(idx: Int): Char = {
-    validCharacters(idx)
+      validCharacters(idx)
   }
 }
