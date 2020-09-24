@@ -39,6 +39,10 @@ object MainDl4jExample extends Logging {
       // Length for truncated backpropagation through time. i.e., do parameter updates ever 50 characters
       properties.getProperty("trainingDropOut").toDouble,
       properties.getProperty("hiddenLayerWidth").toInt,                 // Number of units in each LSTM layer
+      properties.getProperty("hiddenLayerCont").toInt
+
+    )
+    val trainingConfItem: NeuralNetworkTrainingConfItem = NeuralNetworkTrainingConfItem(
       properties.getProperty("trainingMiniBatchSize").toInt,              // Size of mini batch to use when  training
       properties.getProperty("trainingExampleLength").toInt,
       // Length of each training example sequence to use. This could certainly be increased
@@ -47,8 +51,7 @@ object MainDl4jExample extends Logging {
       // How frequently to generate samples from the network?
       // 1000 characters / 50 tbptt length: 20 parameter updates per minibatch
       properties.getProperty("trainingNCharactersToGenerate").toInt,       // Length of each sample to generate
-      properties.getProperty("generationInitialization")
-    )
+      properties.getProperty("generationInitialization"))
 
     // Optional character initialization. A random character is used if null. Initilization characters must all be in
     // validCharactersList.
@@ -59,7 +62,8 @@ object MainDl4jExample extends Logging {
 
     // Reading data from file
     val data = IOUtils.toString(new FileInputStream("dataSet.txt"), "UTF-8")
-    val iter: CharacterIterator = getCharacterExampleIterator(confItem.miniBatchSize, confItem.exampleLength, rng, data)
+    val iter: CharacterIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
+                                                              trainingConfItem.exampleLength, rng, data)
     val nIn = iter.inputColumns()
     val nOut = iter.totalOutcomes()
 
@@ -72,30 +76,28 @@ object MainDl4jExample extends Logging {
 
     // Do training, and then generate and print samples from network
     val idx = 0
-    fitAndSample(net, iter, rng, generationInitialization, confItem, idx)
+    fitAndSample(net, iter, rng, generationInitialization, trainingConfItem, idx)
 
     // Save trained network
-    val locationToSave = new File("daksjdasdasd.zip")
+    val locationToSave = new File("nn.zip")
     net.save(locationToSave, true)
   }
 
 
   private def configureNetwork(confItem: NeuralNetworkConfItem, nIn: Int, nOut: Int): MultiLayerConfiguration = {
-    new NeuralNetConfiguration.Builder()
+    val nnConf = new NeuralNetConfiguration.Builder()
       .seed(confItem.seed)
       .l2(confItem.l2)
       .weightInit(confItem.weightInit)
       .updater(new Adam(confItem.learningRate))
       .list()
-      .layer(new LSTM.Builder().nIn(nIn).nOut(confItem.layerWidth)
-        .activation(confItem.activationLSTM).build())
-      .layer(new DropoutLayer(confItem.dropOut))
-      .layer(new LSTM.Builder().nIn(confItem.layerWidth).nOut(confItem.layerWidth)
-        .activation(confItem.activationLSTM).build())
-      .layer(new DropoutLayer(confItem.dropOut))
-      .layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
-        // MCXENT + softmax for classification
-        .nIn(confItem.layerWidth).nOut(nOut).build())
+
+    val idx = 0
+    addLayers(nnConf, confItem, nIn, nOut, idx)
+
+    nnConf.layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
+      // MCXENT + softmax for classification
+      .nIn(confItem.layerWidth).nOut(nOut).build())
       .backpropType(confItem.tbpttType)
       .tBPTTForwardLength(confItem.tbpttLength)
       .tBPTTBackwardLength(confItem.tbpttLength)
@@ -103,56 +105,69 @@ object MainDl4jExample extends Logging {
   }
 
   @tailrec
+  private def addLayers(nnConf: NeuralNetConfiguration.ListBuilder, confItem: NeuralNetworkConfItem,
+                        nIn: Int, nOut: Int, idx: Int): Unit = {
+
+    if (idx < confItem.layerCount) {
+      nnConf.layer(new LSTM.Builder().nIn(nIn).nOut(confItem.layerWidth)
+        .activation(confItem.activationLSTM).build())
+        .layer(new DropoutLayer(confItem.dropOut))
+      addLayers(nnConf, confItem, nIn, nOut, idx + 1)
+    }
+  }
+
+  @tailrec
   private def fitAndSample(net: MultiLayerNetwork, iter: CharacterIterator, rng: Random,
-                           generationInitialization: String, confItem: NeuralNetworkConfItem, idx: Int): Unit = {
+                           generationInitialization: String, trainingConfItem: NeuralNetworkTrainingConfItem, idx: Int)
+  : Unit = {
     val miniBatchNumber = 0
-    val numEpochs = confItem.numEpochs
+    val numEpochs = trainingConfItem.numEpochs
     if (idx < numEpochs) {
       logger.debug("Epoch: " + idx)
-      nextTraining(net, iter, miniBatchNumber, confItem, rng)
+      nextTraining(net, iter, miniBatchNumber, trainingConfItem, rng)
       iter.reset()
-      fitAndSample(net, iter, rng, generationInitialization, confItem, idx + 1)
+      fitAndSample(net, iter, rng, generationInitialization, trainingConfItem, idx + 1)
     }
   }
 
   @tailrec
   private def nextTraining(net: MultiLayerNetwork, iter: CharacterIterator,
-                           miniBatchNumber: Int, confItem: NeuralNetworkConfItem, rng: Random): Unit = {
+                           miniBatchNumber: Int, trainingConfItem: NeuralNetworkTrainingConfItem, rng: Random): Unit = {
     if (iter.hasNext) {
       net.fit(iter.next())
-      sample(net, iter, miniBatchNumber, confItem, rng)
-      nextTraining(net, iter, miniBatchNumber + 1, confItem, rng)
+      sample(net, iter, miniBatchNumber, trainingConfItem, rng)
+      nextTraining(net, iter, miniBatchNumber + 1, trainingConfItem, rng)
     }
   }
 
   private def sample(net: MultiLayerNetwork, iter: CharacterIterator,
-                     miniBatchNumber: Int, confItem: NeuralNetworkConfItem, rng: Random): Unit = {
+                     miniBatchNumber: Int, trainingConfItem: NeuralNetworkTrainingConfItem, rng: Random): Unit = {
     val lineBreak = "\n"
-    if (miniBatchNumber % confItem.generateSamplesEveryNMinibatches == 0) {
+    if (miniBatchNumber % trainingConfItem.generateSamplesEveryNMinibatches == 0) {
       logger.debug("--------------------")
-      logger.debug("Completed " + miniBatchNumber + " minibatches of size " + confItem.miniBatchSize + "x" +
-        confItem.exampleLength +
+      logger.debug("Completed " + miniBatchNumber + " minibatches of size " + trainingConfItem.miniBatchSize + "x" +
+        trainingConfItem.exampleLength +
         " " +
         "characters")
       logger.debug("Sampling characters from network given initialization \"" + (
-        if (confItem.generationInitialization == null) {
+        if (trainingConfItem.generationInitialization == null) {
           ""
         }
         else {
-          confItem.generationInitialization
+          trainingConfItem.generationInitialization
         }
         ) + "\"")
-      val samples: String = sampleCharactersFromNetwork(confItem.generationInitialization, net, iter, rng,
-        confItem.nCharactersToSample)
+      val samples: String = sampleCharactersFromNetwork(trainingConfItem.generationInitialization, net, iter, rng,
+        trainingConfItem.nCharactersToSample)
       logger.debug("----- Sample -----")
       logger.debug(samples.toString + lineBreak)
       logger.debug("----- Another sample ------")
       val anotherSample: String = sampleCharactersFromNetwork("El gobierno y ", net, iter, rng,
-        confItem.nCharactersToSample)
+        trainingConfItem.nCharactersToSample)
       logger.debug(anotherSample.toString + lineBreak)
       logger.debug("----- And another one ------")
       val anotherOne: String = sampleCharactersFromNetwork("El puto Reven es un ", net, iter, rng,
-        confItem.nCharactersToSample)
+        trainingConfItem.nCharactersToSample)
       logger.debug(anotherOne.toString + lineBreak)
     }
   }

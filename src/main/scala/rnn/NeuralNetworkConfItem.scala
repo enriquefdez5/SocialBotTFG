@@ -16,10 +16,5 @@ case class NeuralNetworkConfItem(seed: Int,
                                  tbpttLength: Int,
                                  dropOut: Double,
                                  layerWidth: Int,
-                                 miniBatchSize: Int,
-                                 exampleLength: Int,
-                                 numEpochs: Int,
-                                 generateSamplesEveryNMinibatches: Int,
-                                 nCharactersToSample: Int,
-                                 generationInitialization: String
+                                 layerCount: Int
                                 )
