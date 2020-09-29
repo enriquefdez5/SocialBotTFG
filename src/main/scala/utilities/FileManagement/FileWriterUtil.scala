@@ -1,11 +1,15 @@
-package utilities
+package utilities.FileManagement
 
-import java.io.{BufferedWriter, File, FileWriter, IOException}
+import java.io.{BufferedWriter, File, FileInputStream, FileWriter, IOException}
+import java.util.Properties
 
 import org.apache.logging.log4j.scala.Logging
 
+object FileWriterUtil extends Logging{
 
-object IOUtil extends Logging {
+  // Read properties file
+  val properties: Properties = new Properties()
+  properties.load(new FileInputStream("src/main/resources/config.properties"))
 
   /**
    * This function write a Seq of Strings into a file.
@@ -13,7 +17,7 @@ object IOUtil extends Logging {
    * @param fileName. The file where the text should be written. By default it writes on the RNN dataSet.txt file
    *                that later will be use to train the RNN
    */
-  def writeDataOnAFile(posts: Seq[String], fileName: String = "./dataSet.txt"): Unit = {
+  def writeDataOnAFile(posts: Seq[String], fileName: String = properties.getProperty("dataSetFileName")): Unit = {
     // FileWriter
     val file = new File(fileName)
     val bw = new BufferedWriter(new FileWriter(file))
