@@ -21,38 +21,16 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import scala.annotation.tailrec
 
 object MainDl4jExample extends Logging {
+
   def main(args: Array[String]): Unit = {
     // Read properties file
     val properties: Properties = new Properties()
     properties.load(new FileInputStream("src/main/resources/config.properties"))
-    // Neural network conf parameters
-    val confItem: NeuralNetworkConfItem = NeuralNetworkConfItem(
-      properties.getProperty("trainingSeed").toInt,
-      properties.getProperty("trainingLearningRate").toDouble,
-      WeightInit.valueOf(properties.getProperty("trainingWeightInit")),
-      LossFunction.valueOf(properties.getProperty("trainingLossFunction")),
-      Activation.valueOf(properties.getProperty("trainingActivationLSTM")),
-      Activation.valueOf(properties.getProperty("trainingActivationRNN")),
-      properties.getProperty("trainingL2").toDouble,
-      BackpropType.valueOf(properties.getProperty("trainingTbpttType")),
-      properties.getProperty("trainingTbpttLength").toInt,
-      // Length for truncated backpropagation through time. i.e., do parameter updates ever 50 characters
-      properties.getProperty("trainingDropOut").toDouble,
-      properties.getProperty("hiddenLayerWidth").toInt,                 // Number of units in each LSTM layer
-      properties.getProperty("hiddenLayerCont").toInt
 
-    )
+    // Neural network conf parameters
+    val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(properties)
     // Training conf parameters
-    val trainingConfItem: NeuralNetworkTrainingConfItem = NeuralNetworkTrainingConfItem(
-      properties.getProperty("trainingMiniBatchSize").toInt,              // Size of mini batch to use when  training
-      properties.getProperty("trainingExampleLength").toInt,
-      // Length of each training example sequence to use. This could certainly be increased
-      properties.getProperty("trainingNEpochs").toInt,                    // Total number of training epochs
-      properties.getProperty("generateSamplesEveryNMinibatches").toInt,
-      // How frequently to generate samples from the network?
-      // 1000 characters / 50 tbptt length: 20 parameter updates per minibatch
-      properties.getProperty("trainingNCharactersToGenerate").toInt,       // Length of each sample to generate
-      properties.getProperty("generationInitialization"))
+    val trainingConfItem: NeuralNetworkTrainingConfItem = createNetworkTrainingConfItem(properties)
 
     // Optional character initialization. A random character is used if null. Initilization characters must all be in
     // validCharactersList.
@@ -82,6 +60,53 @@ object MainDl4jExample extends Logging {
     // Save trained network
     val locationToSave = new File("nn.zip")
     net.save(locationToSave, true)
+  }
+
+  def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterIterator,
+                                  rng: Random, charactersToSample: Int): String = {
+
+    // Set up initialization. If no initialization: use a random character
+    val ownInitialization: String = getCharacter(initialization)
+
+    val initializationInput: INDArray = getInitializationInput(iter, ownInitialization)
+
+    val sb: StringBuilder = new StringBuilder(ownInitialization)
+    generateSample(net, sb, iter, rng, initializationInput, charactersToSample)
+
+    sb.toString()
+  }
+
+
+
+  private def createNetworkTrainingConfItem(properties: Properties): NeuralNetworkTrainingConfItem = {
+    NeuralNetworkTrainingConfItem(
+      properties.getProperty("trainingMiniBatchSize").toInt,              // Size of mini batch to use when  training
+      properties.getProperty("trainingExampleLength").toInt,
+      // Length of each training example sequence to use. This could certainly be increased
+      properties.getProperty("trainingNEpochs").toInt,                    // Total number of training epochs
+      properties.getProperty("generateSamplesEveryNMinibatches").toInt,
+      // How frequently to generate samples from the network?
+      // 1000 characters / 50 tbptt length: 20 parameter updates per minibatch
+      properties.getProperty("trainingNCharactersToGenerate").toInt,       // Length of each sample to generate
+      properties.getProperty("generationInitialization")
+    )
+  }
+  private def createNeuralNetworkConfItem(properties: Properties): NeuralNetworkConfItem = {
+    NeuralNetworkConfItem(
+      properties.getProperty("trainingSeed").toInt,
+      properties.getProperty("trainingLearningRate").toDouble,
+      WeightInit.valueOf(properties.getProperty("trainingWeightInit")),
+      LossFunction.valueOf(properties.getProperty("trainingLossFunction")),
+      Activation.valueOf(properties.getProperty("trainingActivationLSTM")),
+      Activation.valueOf(properties.getProperty("trainingActivationRNN")),
+      properties.getProperty("trainingL2").toDouble,
+      BackpropType.valueOf(properties.getProperty("trainingTbpttType")),
+      properties.getProperty("trainingTbpttLength").toInt,
+      // Length for truncated backpropagation through time. i.e., do parameter updates ever 50 characters
+      properties.getProperty("trainingDropOut").toDouble,
+      properties.getProperty("hiddenLayerWidth").toInt,                 // Number of units in each LSTM layer
+      properties.getProperty("hiddenLayerCont").toInt
+    )
   }
 
 
@@ -184,22 +209,6 @@ object MainDl4jExample extends Logging {
     else {
       initialization
     }
-  }
-
-  def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterIterator,
-    rng: Random, charactersToSample: Int): String = {
-
-    // Set up initialization. If no initialization: use a random character
-    val ownInitialization: String = getCharacter(initialization)
-
-    val initializationInput: INDArray = getInitializationInput(iter, ownInitialization)
-
-
-    val sb: StringBuilder = new StringBuilder(ownInitialization)
-    generateSample(net, sb, iter, rng, initializationInput, charactersToSample)
-
-
-    sb.toString()
   }
 
   private def generateSample(net: MultiLayerNetwork, sb: StringBuilder,
