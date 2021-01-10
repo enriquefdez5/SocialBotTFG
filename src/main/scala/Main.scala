@@ -1,10 +1,9 @@
-import java.io.FileInputStream
-import java.util.Properties
 import scala.collection.JavaConversions._
-
 import twitterapi.TwitterFilter.{cleanTweets, markTweets}
+import twitterapi.TwitterService.getTweets
 import org.apache.logging.log4j.scala.Logging
-import utilities.FileManagement.{FileReaderUtil, FileWriterUtil}
+import utilities.ConfigRun
+import utilities.fileManagement.{FileReaderUtil, FileWriterUtil}
 
 
 object Main extends Logging {
@@ -12,19 +11,15 @@ object Main extends Logging {
   // Main method for reading tweets and saving in file for later training.
   def main(args: Array[String]): Unit = {
 
-    // Read properties file
-    val properties: Properties = new Properties()
-    properties.load(new FileInputStream("src/main/resources/config.properties"))
-
     logger.info("AIBehaviour twitter says hi!")
-    logger.info("Searching for twitter posts")
 
     // Twitter API search
-//    val conf = new ConfigRun(args)
+    val conf = new ConfigRun(args)
     // Twitter username where tweets will be search
-//    val twitterUser = "sanchezcastejon"
+    val twitterUser = "ibaiLLanos"
     // Get tweets from twitter
-//    val tweets = getTweets(conf, twitterUser)
+    val apiTweets = getTweets(conf, twitterUser)
+
 //    val tweetText = tweets.map(_.text)
 
     // Get tweets from library CSV file
@@ -40,6 +35,7 @@ object Main extends Logging {
 
     // Write text in file
     FileWriterUtil.writeDataOnAFile(markedTweets)
+
 
     logger.info("AIBheaviour twitter says good bye!")
   }

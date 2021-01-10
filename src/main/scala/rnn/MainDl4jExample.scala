@@ -17,6 +17,7 @@ import org.nd4j.linalg.indexing.BooleanIndexing
 import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
 
 import scala.annotation.tailrec
 
@@ -32,15 +33,15 @@ object MainDl4jExample extends Logging {
     // Training conf parameters
     val trainingConfItem: NeuralNetworkTrainingConfItem = createNetworkTrainingConfItem(properties)
 
-    // Optional character initialization. A random character is used if null. Initilization characters must all be in
+    // Optional character initialization. A random character is used if null. Initialization characters must all be in
     // validCharactersList.
-    val generationInitialization = null
+    val generationInitialization = trainingConfItem.generationInitialization
     // Random val used with configuration seed.
     val rng = new Random(confItem.seed)
     // Valid characters used for training. Others will be removed and not used for training.
 
     // Reading data from file
-    val data = IOUtils.toString(new FileInputStream("dataSet.txt"), "UTF-8")
+    val data = IOUtils.toString(new FileInputStream("src/data(not modify)/datasetTexto.txt"), "UTF-8")
     val iter: CharacterIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
                                                               trainingConfItem.exampleLength, rng, data)
     val nIn = iter.inputColumns()
@@ -53,12 +54,12 @@ object MainDl4jExample extends Logging {
     net.setListeners(new ScoreIterationListener(1))
     logger.debug(net.summary())
 
-    // Do training, and then generate and print samples from network
+    // Do training, then generate and print samples from network
     val idx = 0
     fitAndSample(net, iter, rng, generationInitialization, trainingConfItem, idx)
 
     // Save trained network
-    val locationToSave = new File("nn.zip")
+    val locationToSave = new File("src/data(tmp)/nn.zip")
     net.save(locationToSave, true)
   }
 
@@ -119,7 +120,7 @@ object MainDl4jExample extends Logging {
       .list()
 
     val idx = 0
-    addLayers(nnConf, confItem, nIn, nOut, idx)
+    addLayers(nnConf, confItem, nIn, idx)
 
     nnConf.layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
       // MCXENT + softmax for classification
@@ -132,13 +133,13 @@ object MainDl4jExample extends Logging {
 
   @tailrec
   private def addLayers(nnConf: NeuralNetConfiguration.ListBuilder, confItem: NeuralNetworkConfItem,
-                        nIn: Int, nOut: Int, idx: Int): Unit = {
+                        nIn: Int, idx: Int): Unit = {
 
     if (idx < confItem.layerCount) {
       nnConf.layer(new LSTM.Builder().nIn(nIn).nOut(confItem.layerWidth)
         .activation(confItem.activationLSTM).build())
         .layer(new DropoutLayer(confItem.dropOut))
-      addLayers(nnConf, confItem, nIn, nOut, idx + 1)
+      addLayers(nnConf, confItem, nIn, idx + 1)
     }
   }
 
@@ -186,15 +187,15 @@ object MainDl4jExample extends Logging {
       val samples: String = sampleCharactersFromNetwork(trainingConfItem.generationInitialization, net, iter, rng,
         trainingConfItem.nCharactersToSample)
       logger.debug("----- Sample -----")
-      logger.debug(samples.toString + lineBreak)
+      logger.debug(samples + lineBreak)
       logger.debug("----- Another sample ------")
       val anotherSample: String = sampleCharactersFromNetwork("El gobierno y ", net, iter, rng,
         trainingConfItem.nCharactersToSample)
-      logger.debug(anotherSample.toString + lineBreak)
+      logger.debug(anotherSample + lineBreak)
       logger.debug("----- And another one ------")
       val anotherOne: String = sampleCharactersFromNetwork("El puto Reven es un ", net, iter, rng,
         trainingConfItem.nCharactersToSample)
-      logger.debug(anotherOne.toString + lineBreak)
+      logger.debug(anotherOne + lineBreak)
     }
   }
   private def getCharacterExampleIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
