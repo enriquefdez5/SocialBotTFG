@@ -1,6 +1,6 @@
 import utilities.{ConfigRun, IOUtil}
+//import twitterapi.TwitterService.{getTweets, transformCSVFile}
 import twitterapi.TwitterService.getTweets
-import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 import org.apache.logging.log4j.scala.Logging
 
 object Main extends Logging{
@@ -9,34 +9,19 @@ object Main extends Logging{
     val conf = new ConfigRun(args)
 
     logger.info("AIBehaviour twitter says hi!")
+
     // Twitter username where tweets will be search
     val twitterUser = "sanchezcastejon"
 
-    // Get tweets from twitter
+    // Get tweets from twitter.
     val tweets = getTweets(conf, twitterUser)
 
-    // Clean those tweets
-    val filteredTweets = cleanTweets(tweets)
+    // Obtain tweets from csv file and rtweets from twitter account
+//    val anotherCSVFile = transformCSVFile(tweets)
 
-    // Add marks to text for the neural network
-    val markedTweets = markTweets(filteredTweets)
-    // Search for FB post.
+    // Write train data in a file
+    IOUtil.writeDataOnAFile(anotherCSVFile, fileName = "./trainCSV.csv")
 
-    // Clean FB text
-
-    // It could be done with Instagram too
-    // Search for FB post.
-
-    // Clean FB text
-
-
-    // Write text in file
-    IOUtil.writeDataOnAFile(markedTweets)
-
-    // Append FB text to the training file.
-
-
-    // Training model could be another MainMethod
     logger.info("AIBheaviour twitter says good bye!")
   }
 }

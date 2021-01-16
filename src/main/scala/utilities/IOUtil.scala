@@ -1,11 +1,19 @@
 package utilities
 
-import java.io.{BufferedWriter, File, FileWriter, IOException}
+import java.io.{BufferedReader, BufferedWriter, File, FileInputStream, FileReader, FileWriter, IOException}
+import java.util
+import java.util.Properties
 
 import org.apache.logging.log4j.scala.Logging
 
+import scala.annotation.tailrec
+
 
 object IOUtil extends Logging {
+
+  // Read properties file
+  val properties: Properties = new Properties()
+  properties.load(new FileInputStream("src/main/resources/config.properties"))
 
   /**
    * This function write a Seq of Strings into a file.
@@ -19,8 +27,8 @@ object IOUtil extends Logging {
     val bw = new BufferedWriter(new FileWriter(file))
 
     try {
-      posts.foreach{ item =>
-        bw.write(item)
+      posts.foreach{ post =>
+        bw.write(post)
       }
     }
     catch {
@@ -30,4 +38,28 @@ object IOUtil extends Logging {
     // Closing the buffer
     bw.close()
   }
-}
+
+
+  def readCSVFile(fileName: String = properties.getProperty("csvTweetsFileName")): util.ArrayList[String] = {
+    val file = new File(fileName)
+    val br = new BufferedReader(new FileReader(file))
+    val result = new util.ArrayList[String]()
+    try{
+      addCSVData(result, br, br.readLine)
+    }
+    catch {
+      case ioexc: IOException =>
+        logger.error("Ups! Something went wrong reading from the file", ioexc)
+    }
+    br.close()
+    result
+  }
+
+  @tailrec
+  private def addCSVData(result: util.ArrayList[String], br: BufferedReader, line: String): util.ArrayList[String] = {
+    if (line != null) {
+      result.add(line)
+      addCSVData(result, br, br.readLine)
+    }
+    else { result }
+  }}
