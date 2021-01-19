@@ -9,6 +9,8 @@ package model
  */
 case class User(id: Long, strId: String, userInfo: UserInfo, userStats: UserStats, profileImg: ProfileImg)
 
+
+// ---------------- Probably never will be used ------------------- //
 /**
  * Data class with profile info
  * @param name String, User's profile name. Ej: ("Ibai")
