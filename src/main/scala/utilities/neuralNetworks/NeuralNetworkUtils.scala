@@ -168,7 +168,7 @@ object NeuralNetworkUtils extends Logging {
     val typeAndDate: TypeAndDate = postToTypeAndDate(post)
     inputArray.putScalar(Array[Long](idx, 0, 0), typeAndDate.dayOfWeek.toLong / 7)
     inputArray.putScalar(Array[Long](idx, 1, 0), typeAndDate.hourOfDay.toLong / 23)
-    inputArray.putScalar(Array[Long](idx, 2, 0), typeAndDate.action / 3)
+    inputArray.putScalar(Array[Long](idx, 2, 0), typeAndDate.action.getValue() / 3)
   }
 
   /**

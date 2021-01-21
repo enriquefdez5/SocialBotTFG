@@ -3,6 +3,9 @@ package model
 // java imports
 import java.util.Random
 
+// Command imports
+import twitterapi.commandActions.{PostCommand, RtCommand, ReplyCommand, ActionCommand}
+
 import model.Action.{POST, REPLY, RT, getActionFromIntValue}
 
 
@@ -25,7 +28,7 @@ import utilities.dates.datesUtil.{getCalendarDay, getCalendarHour, getCalendarIn
  * @param action, Action. Action enumeration value representing the type of action that must be executed.
  * 1 for POST, 2 for RT and 3 for REPLY
  */
-case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: Action)
+case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: ActionCommand)
 
 object TypeAndDate extends Logging {
 
@@ -44,16 +47,24 @@ object TypeAndDate extends Logging {
       val max = 3
       val min = 2
       val notPostRandomAction: Int = new Random().nextInt(max-min) + min
-      TypeAndDate(day, hour, getActionFromIntValue(notPostRandomAction))
+      TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(notPostRandomAction)))
     }
     if (action == 0) {
-      TypeAndDate(day, hour, Action.POST)
+      TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(1)))
     }
     else {
-      TypeAndDate(day, hour, getActionFromIntValue(action))
+      TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(action)))
     }
   }
 
+
+  private def createCommandAction(action: Action): ActionCommand = {
+    action match {
+      case POST => new PostCommand
+      case RT => new RtCommand
+      case REPLY => new ReplyCommand
+    }
+  }
   /**
    * Function that converts a given tweet as a Post object into a TypeAndDate object.
    * @param lastTweet, Post. Tweet given as a Post object which will be converted into a TypeAndDate object with the
@@ -66,7 +77,7 @@ object TypeAndDate extends Logging {
     val day: Int = getCalendarDay(calendar)
     val hour: Int = getCalendarHour(calendar)
     val action: Action = getActionFromPostObject(lastTweet)
-    TypeAndDate(day, hour, action)
+    TypeAndDate(day, hour, createCommandAction(action))
   }
 
   /**

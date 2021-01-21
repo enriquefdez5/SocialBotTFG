@@ -67,7 +67,7 @@ object MainActionExecution extends Logging {
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
       val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions, conf)
-      val isPostAction: Boolean = newTypeAndDateAction.action == POST
+      val isPostAction: Boolean = newTypeAndDateAction.action.getValue() == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
       // Action at same hour
       if (isAtSameHour) {
@@ -119,66 +119,7 @@ object MainActionExecution extends Logging {
     val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)
     val now = getCalendarInstance.getTime
     if (waitForDate(date, now)) {
-      typeAndDate.action match {
-        case POST => executePost(conf)
-        case RT => executeReply(conf)
-        case REPLY => executeRt(conf)
-      }
+      typeAndDate.action.execute(conf)
     }
-  }
-
-  /**
-   * Function that prepares a post action that will be executed.
-   *
-   * @param conf . Item needed to interact with Twitter API.
-   */
-  private def executePost(conf: ConfigRun): Unit = {
-    // Text to post
-    val nCharactersToSample: Int = 200
-    val tweetText: String = prepareText(nCharactersToSample)
-    // Post
-    logger.debug("Tweet posted")
-    //    postTweet(tweetText, conf)
-  }
-
-  /**
-   * Function that prepares a reply action that will be executed.
-   *
-   * @param conf . Item needed to interact with Twitter API.
-   */
-  private def executeReply(conf: ConfigRun): Unit = {
-    // Prepare text
-    val nCharactersToSample: Int = 120
-    val replyText: String = prepareText(nCharactersToSample)
-    // Get twitter username
-    val twitterUsername = getTwitterUsername
-    // Get tweets
-    val tweets = twitterapi.TwitterService.getTweets(conf, twitterUsername)
-    // Get most replied user from gathered tweets
-    val mostRepliedUserId: Long = obtainMostRepliedUserId(tweets)
-    // Get tweet to reply
-    val tweetToReplyId: Long = obtainTweetToReply(mostRepliedUserId, conf)
-    // Reply
-    logger.debug("Reply tweet")
-    //    replyTweet(replyText, mostRepliedUserId, tweetToReplyId, conf)
-  }
-
-  /**
-   * Function that prepares a rt action that will be executed.
-   *
-   * @param conf . Item needed to interact with Twitter API.
-   */
-  private def executeRt(conf: ConfigRun): Unit = {
-    // Get twitter username
-    val twitterUserName = getTwitterUsername
-    // Get tweets
-    val tweets = getTweets(conf, twitterUserName)
-    // Get most retweeted User from gathered tweets
-    val mostRetweetedUserId: Long = obtainMostRetweetedUserId(tweets)
-    // Get tweet to rt
-    val tweetToRt: Long = obtainTweetToRt(mostRetweetedUserId, conf)
-    // Rt
-    logger.debug("Retweet tweet")
-    //    rtTweet(tweetToRt, conf)
   }
 }
