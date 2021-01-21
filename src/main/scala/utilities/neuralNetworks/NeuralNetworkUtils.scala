@@ -10,8 +10,8 @@ import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
-import rnn.CharacterIterator
-import rnn.MainDl4jExample.sampleCharactersFromNetwork
+import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
+import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
 import twitterapi.TwitterService.{getLastFiveTweets, getTwitterUsername, properties}
 import utilities.ConfigRun
 
@@ -29,7 +29,7 @@ object NeuralNetworkUtils extends Logging {
     val rng = new Random()
     val miniBatchSize = properties.getProperty("trainingMiniBatchSize").toInt
     val exampleLength = properties.getProperty("trainingExampleLength").toInt
-    val iter: CharacterIterator = getCharacterIterator(miniBatchSize, exampleLength, rng)
+    val iter: CharacterGeneratorIterator = getCharacterIterator(miniBatchSize, exampleLength, rng)
     val postNCharactersToSample = nCharactersToSample
     val textNN = loadNetwork("./models/bestIbai52epochs.zip")
     sampleCharactersFromNetwork(initializationString, textNN, iter,
@@ -43,9 +43,9 @@ object NeuralNetworkUtils extends Logging {
    * @param rng. Random object used to set a seed value.
    * @return CharacterIterator object needed to sample characters.
    */
-  private def getCharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random): CharacterIterator = {
+  private def getCharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random): CharacterGeneratorIterator = {
     val data = IOUtils.toString(new FileInputStream("datasetTexto.txt"), "UTF-8")
-    new CharacterIterator(miniBatchSize, exampleLength, rng, data)
+    new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data)
   }
 
   /**

@@ -1,4 +1,4 @@
-package twitterActionRNN
+package neuralNetworks.rnnTwitterActions
 
 import java.util
 import java.util.{Collections, Random}
@@ -12,8 +12,8 @@ import org.nd4j.linalg.factory.Nd4j
 
 import scala.annotation.tailrec
 
-class NeuralNetworkCSVReaderIterator(miniBatchSize: Int, exampleLength: Int,
-                                     strings: Array[String])
+class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
+                              strings: Array[String])
                                     extends DataSetIterator with Logging {
 
   // Get values from strings array parameter

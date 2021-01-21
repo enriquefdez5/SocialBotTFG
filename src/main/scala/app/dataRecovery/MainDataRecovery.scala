@@ -1,20 +1,20 @@
-// Java conversions
-import utilities.fileManagement.FileWriterUtil
+package app.dataRecovery
 
-import scala.collection.JavaConversions._
+// logging imports
+import org.apache.logging.log4j.scala.Logging
 
-// twitterapi functinos
+// twitter api imports
 import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 import twitterapi.TwitterService.getTweets
 
-// logging service
-import org.apache.logging.log4j.scala.Logging
-
-// utilities
+// utilities import
 import utilities.ConfigRun
 import utilities.fileManagement.{FileReaderUtil, FileWriterUtil}
 
-object Main extends Logging {
+import scala.collection.JavaConversions._
+
+
+object MainDataRecovery extends Logging {
 
   // Main method for reading tweets and saving in file for later training.
   def main(args: Array[String]): Unit = {
@@ -26,7 +26,7 @@ object Main extends Logging {
     // Get tweets from twitter
     val apiTweets = getTweets(conf, twitterUser)
 
-//    val tweetText = tweets.map(_.text)
+    //    val tweetText = tweets.map(_.text)
 
     // Get tweets from library CSV file
     val csvFileName = "ibaiLLanos.csv"
@@ -43,7 +43,8 @@ object Main extends Logging {
     FileWriterUtil.writeDataOnAFile(markedTweets)
 
     // Write train data in a file
-    IOUtil.writeDataOnAFile(anotherCSVFile, fileName = "./trainCSV.csv")
+    // TODO(remove if not used)
+//  FileWriterUtil.writeDataOnAFile(anotherCSVFile, fileName = "./trainCSV.csv")
 
     logger.info("AIBheaviour twitter says good bye!")
   }

@@ -26,11 +26,10 @@ object TwitterServiceOperations extends Logging {
     tweets.map(it => {
       calendar.setTime(it.getCreatedAt)
       if (it.getRetweetedStatus != null) {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getInReplyToStatusId,
-          it.getRetweetedStatus.getUser.getId)
+        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getRetweetedStatus.getUser.getId, 0)
       }
       else {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getInReplyToStatusId, 0)
+        Post(it.getText, calendar.getTime, it.getRetweetedStatus, 0, it.getInReplyToStatusId)
       }
     })
   }

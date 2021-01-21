@@ -1,4 +1,4 @@
-package rnn
+package neuralNetworks.rnnCharacterGenerator
 
 import java.util
 import java.util.{Collections, Random}
@@ -12,8 +12,8 @@ import org.nd4j.linalg.factory.Nd4j
 
 import scala.annotation.tailrec
 
-class CharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                        splittedData: String) extends DataSetIterator with Logging {
+class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
+                                 splittedData: String) extends DataSetIterator with Logging {
 
   // Valid chars used for training
   //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\"\n',.?;()[]{}:!-#@ "

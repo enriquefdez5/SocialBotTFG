@@ -1,21 +1,22 @@
-package AI
+package app.actionExecution
 
-import scala.annotation.tailrec
 import java.io.FileInputStream
 import java.util
 import java.util.Properties
 
-import org.apache.logging.log4j.scala.Logging
-import utilities.ConfigRun
+import model.Action.{POST, REPLY, RT}
 import model.TypeAndDate
 import model.TypeAndDate.postToTypeAndDate
-import twitterapi.TwitterService.{getTweets, getTwitterUsername, obtainTweetToReply, obtainTweetToRt, postTweet, replyTweet, rtTweet}
-import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMaxFollowedPostActions, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId}
+import org.apache.logging.log4j.scala.Logging
+import twitterapi.TwitterService.{getTweets, getTwitterUsername, obtainTweetToReply, obtainTweetToRt}
+import twitterapi.TwitterServiceOperations._
+import utilities.ConfigRun
 import utilities.dates.datesUtil.{buildDate, getCalendarInstance, waitForDate}
 import utilities.neuralNetworks.NeuralNetworkUtils.{generateNextAction, prepareText}
 
+import scala.annotation.tailrec
 
-object Operations extends Logging{
+object MainActionExecution extends Logging {
 
 
   def main(args: Array[String]): Unit = {
@@ -55,9 +56,10 @@ object Operations extends Logging{
   // Third loop method with checks for actions in hour and followed post actions
   /**
    * This method contains the loop for generating and executing actions.
-   * @param conf. Item needed to interact with Twitter API.
-   * @param idx. Value that represents the iteration number.
-   * @param loopLimit. Limit value. It defines the loop stop condition.
+   *
+   * @param conf      . Item needed to interact with Twitter API.
+   * @param idx       . Value that represents the iteration number.
+   * @param loopLimit . Limit value. It defines the loop stop condition.
    */
   @tailrec
   private def loop(conf: ConfigRun, idx: Int, loopLimit: Int, lastTypeAndDate: TypeAndDate,
@@ -65,7 +67,7 @@ object Operations extends Logging{
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
       val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions, conf)
-      val isPostAction: Boolean = newTypeAndDateAction.action == 1
+      val isPostAction: Boolean = newTypeAndDateAction.action == POST
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
       // Action at same hour
       if (isAtSameHour) {
@@ -74,8 +76,8 @@ object Operations extends Logging{
           executeAction(newTypeAndDateAction, conf)
           if (isPostAction) {
             loop(conf, idx + 1, loopLimit, lastTypeAndDate,
-                sameHourCount + 1, maxActionsPerHour,
-                followedPostActionsCount + 1, maxFollowedPostActions)
+              sameHourCount + 1, maxActionsPerHour,
+              followedPostActionsCount + 1, maxFollowedPostActions)
           }
           else {
             loop(conf, idx + 1, loopLimit, lastTypeAndDate,
@@ -101,7 +103,7 @@ object Operations extends Logging{
         else {
           loop(conf, idx + 1, loopLimit, lastTypeAndDate,
             sameHourCount = 1, maxActionsPerHour,
-            0 , maxFollowedPostActions)
+            0, maxFollowedPostActions)
         }
       }
     }
@@ -109,24 +111,26 @@ object Operations extends Logging{
 
   /**
    * Function that will execute an action following typeAndDate object
+   *
    * @param typeAndDate item.
-   * @param conf. Item needed to interact with Twitter API.
+   * @param conf        . Item needed to interact with Twitter API.
    */
   private def executeAction(typeAndDate: TypeAndDate, conf: ConfigRun): Unit = {
     val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)
     val now = getCalendarInstance.getTime
     if (waitForDate(date, now)) {
       typeAndDate.action match {
-        case 1 => executePost(conf)
-        case 2 => executeReply(conf)
-        case 3 => executeRt(conf)
+        case POST => executePost(conf)
+        case RT => executeReply(conf)
+        case REPLY => executeRt(conf)
       }
     }
   }
 
   /**
    * Function that prepares a post action that will be executed.
-   * @param conf. Item needed to interact with Twitter API.
+   *
+   * @param conf . Item needed to interact with Twitter API.
    */
   private def executePost(conf: ConfigRun): Unit = {
     // Text to post
@@ -134,12 +138,13 @@ object Operations extends Logging{
     val tweetText: String = prepareText(nCharactersToSample)
     // Post
     logger.debug("Tweet posted")
-//    postTweet(tweetText, conf)
+    //    postTweet(tweetText, conf)
   }
 
   /**
    * Function that prepares a reply action that will be executed.
-   * @param conf. Item needed to interact with Twitter API.
+   *
+   * @param conf . Item needed to interact with Twitter API.
    */
   private def executeReply(conf: ConfigRun): Unit = {
     // Prepare text
@@ -155,12 +160,13 @@ object Operations extends Logging{
     val tweetToReplyId: Long = obtainTweetToReply(mostRepliedUserId, conf)
     // Reply
     logger.debug("Reply tweet")
-//    replyTweet(replyText, mostRepliedUserId, tweetToReplyId, conf)
+    //    replyTweet(replyText, mostRepliedUserId, tweetToReplyId, conf)
   }
 
   /**
    * Function that prepares a rt action that will be executed.
-   * @param conf. Item needed to interact with Twitter API.
+   *
+   * @param conf . Item needed to interact with Twitter API.
    */
   private def executeRt(conf: ConfigRun): Unit = {
     // Get twitter username
@@ -173,6 +179,6 @@ object Operations extends Logging{
     val tweetToRt: Long = obtainTweetToRt(mostRetweetedUserId, conf)
     // Rt
     logger.debug("Retweet tweet")
-//    rtTweet(tweetToRt, conf)
+    //    rtTweet(tweetToRt, conf)
   }
-  }
+}

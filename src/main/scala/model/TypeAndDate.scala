@@ -1,11 +1,31 @@
 package model
 
+// java imports
 import java.util.Random
 
+import model.Action.{POST, REPLY, RT, getActionFromIntValue}
+
+
+// model imports
+import model.Action.Action
+
+// logging imports
 import org.apache.logging.log4j.scala.Logging
+
+// dates imports
 import utilities.dates.datesUtil.{getCalendarDay, getCalendarHour, getCalendarInstance}
 
-case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: Int)
+/**
+ * Case class that represents an action to be executed on Twitter the dayOfWeek day at hourOfDay hour. The action to
+ * be executed will be from an Action Type.
+ * @param dayOfWeek, Int. Int value representing the day of a week when the action must be executed.
+ * 0 for Saturday and 6 for Friday
+ * @param hourOfDay, Int. Int value representing the hour of a day when the action must be executed.
+ * 0 for 00:00 and 23 for 23:00.
+ * @param action, Action. Action enumeration value representing the type of action that must be executed.
+ * 1 for POST, 2 for RT and 3 for REPLY
+ */
+case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: Action)
 
 object TypeAndDate extends Logging {
 
@@ -24,13 +44,13 @@ object TypeAndDate extends Logging {
       val max = 3
       val min = 2
       val notPostRandomAction: Int = new Random().nextInt(max-min) + min
-      TypeAndDate(day, hour, notPostRandomAction)
+      TypeAndDate(day, hour, getActionFromIntValue(notPostRandomAction))
     }
     if (action == 0) {
-      TypeAndDate(day, hour, 1)
+      TypeAndDate(day, hour, Action.POST)
     }
     else {
-      TypeAndDate(day, hour, action)
+      TypeAndDate(day, hour, getActionFromIntValue(action))
     }
   }
 
@@ -45,7 +65,7 @@ object TypeAndDate extends Logging {
     calendar.setTime(lastTweet.createdAt)
     val day: Int = getCalendarDay(calendar)
     val hour: Int = getCalendarHour(calendar)
-    val action: Int = getAction(lastTweet)
+    val action: Action = getActionFromPostObject(lastTweet)
     TypeAndDate(day, hour, action)
   }
 
@@ -54,18 +74,18 @@ object TypeAndDate extends Logging {
    * @param post to identify type of action from Twitter.
    * @return an Int object that represents the action type.
    */
-  private def getAction(post: Post): Int = {
+  private def getActionFromPostObject(post: Post): Action = {
     // If it is a rt, returns rt value that is 2
     if (post.retweetedStatusUserId == 1) {
-      2
+      RT
     }
     // If it is a reply, returns reply value that is 3
     else if (post.getInReplyToUserId == 1) {
-      3
+      REPLY
     }
     // If it is not a reply or rt, it is a post, so returns the post value that is 1
     else {
-      1
+      POST
     }
   }
 }

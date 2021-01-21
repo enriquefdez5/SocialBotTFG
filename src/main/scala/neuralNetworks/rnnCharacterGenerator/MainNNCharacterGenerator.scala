@@ -1,4 +1,4 @@
-package rnn
+package neuralNetworks.rnnCharacterGenerator
 
 import java.io.{File, FileInputStream}
 import java.util.{Properties, Random}
@@ -18,16 +18,15 @@ import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
+import utilities.properties.PropertiesReader.getProperties
 
 import scala.annotation.tailrec
 
-object MainDl4jExample extends Logging {
+object MainNNCharacterGenerator extends Logging {
 
   def main(args: Array[String]): Unit = {
-    // Read properties file
-    val properties: Properties = new Properties()
-    properties.load(new FileInputStream("src/main/resources/config.properties"))
 
+    val properties: Properties = getProperties()
     // Neural network conf parameters
     val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(properties)
     // Training conf parameters
@@ -42,8 +41,10 @@ object MainDl4jExample extends Logging {
 
     // Reading data from file
     val data = IOUtils.toString(new FileInputStream("src/data(not modify)/datasetTexto.txt"), "UTF-8")
-    val iter: CharacterIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
+    val iter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
                                                               trainingConfItem.exampleLength, rng, data)
+
+
     val nIn = iter.inputColumns()
     val nOut = iter.totalOutcomes()
 
@@ -59,11 +60,15 @@ object MainDl4jExample extends Logging {
     fitAndSample(net, iter, rng, generationInitialization, trainingConfItem, idx)
 
     // Save trained network
+    saveNetwork(net)
+  }
+
+  private def saveNetwork(net: MultiLayerNetwork): Unit = {
     val locationToSave = new File("src/data(tmp)/nn.zip")
     net.save(locationToSave, true)
   }
 
-  def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterIterator,
+  def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterGeneratorIterator,
                                   rng: Random, charactersToSample: Int): String = {
 
     // Set up initialization. If no initialization: use a random character
@@ -144,7 +149,7 @@ object MainDl4jExample extends Logging {
   }
 
   @tailrec
-  private def fitAndSample(net: MultiLayerNetwork, iter: CharacterIterator, rng: Random,
+  private def fitAndSample(net: MultiLayerNetwork, iter: CharacterGeneratorIterator, rng: Random,
                            generationInitialization: String, trainingConfItem: NeuralNetworkTrainingConfItem, idx: Int)
   : Unit = {
     val miniBatchNumber = 0
@@ -158,7 +163,7 @@ object MainDl4jExample extends Logging {
   }
 
   @tailrec
-  private def nextTraining(net: MultiLayerNetwork, iter: CharacterIterator,
+  private def nextTraining(net: MultiLayerNetwork, iter: CharacterGeneratorIterator,
                            miniBatchNumber: Int, trainingConfItem: NeuralNetworkTrainingConfItem, rng: Random): Unit = {
     if (iter.hasNext) {
       net.fit(iter.next())
@@ -167,7 +172,7 @@ object MainDl4jExample extends Logging {
     }
   }
 
-  private def sample(net: MultiLayerNetwork, iter: CharacterIterator,
+  private def sample(net: MultiLayerNetwork, iter: CharacterGeneratorIterator,
                      miniBatchNumber: Int, trainingConfItem: NeuralNetworkTrainingConfItem, rng: Random): Unit = {
     val lineBreak = "\n"
     if (miniBatchNumber % trainingConfItem.generateSamplesEveryNMinibatches == 0) {
@@ -199,8 +204,8 @@ object MainDl4jExample extends Logging {
     }
   }
   private def getCharacterExampleIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                                  data: String): CharacterIterator = {
-    new CharacterIterator(miniBatchSize, exampleLength, rng, data)
+                                  data: String): CharacterGeneratorIterator = {
+    new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data)
   }
 
   private def getCharacter(initialization: String): String = {
@@ -213,7 +218,7 @@ object MainDl4jExample extends Logging {
   }
 
   private def generateSample(net: MultiLayerNetwork, sb: StringBuilder,
-                             iter: CharacterIterator, rng: Random,
+                             iter: CharacterGeneratorIterator, rng: Random,
                              initializationInput: INDArray, charactersToSample: Int): Unit = {
     net.rnnClearPreviousState()
     val output = net.rnnTimeStep(initializationInput)
@@ -224,7 +229,7 @@ object MainDl4jExample extends Logging {
   }
 
   @tailrec
-  private def buildSample(net: MultiLayerNetwork, idx: Int, charactersToSample: Int, iter: CharacterIterator,
+  private def buildSample(net: MultiLayerNetwork, idx: Int, charactersToSample: Int, iter: CharacterGeneratorIterator,
                           output: INDArray, rng: Random, sb: StringBuilder): Unit = {
     if (idx < charactersToSample) {
       val nextInput: INDArray = Nd4j.zeros(1, iter.inputColumns().toLong)
@@ -238,7 +243,7 @@ object MainDl4jExample extends Logging {
     }
   }
 
-  private def getInitializationInput(iter: CharacterIterator, ownInitialization: String): INDArray = {
+  private def getInitializationInput(iter: CharacterGeneratorIterator, ownInitialization: String): INDArray = {
     val initializationToReturn: INDArray = Nd4j.zeros(1, iter.inputColumns(), ownInitialization
       .length)
     val init: Array[Char] = ownInitialization.toCharArray
@@ -249,7 +254,7 @@ object MainDl4jExample extends Logging {
 
   @tailrec
   private def addCharToArray(init: Array[Char], idx: Int,
-                             iter: CharacterIterator, initializationToReturn: INDArray): Unit = {
+                             iter: CharacterGeneratorIterator, initializationToReturn: INDArray): Unit = {
     if (idx < init.length) {
       val idxToAdd = iter.convertCharacterToIndex(init(idx))
       initializationToReturn.putScalar(Array[Int](1, idxToAdd, idx), 1.0f)

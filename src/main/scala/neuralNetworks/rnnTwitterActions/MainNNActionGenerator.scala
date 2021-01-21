@@ -1,10 +1,11 @@
-package twitterActionRNN
+package neuralNetworks.rnnTwitterActions
 
 import java.io.{BufferedWriter, File, FileInputStream, FileWriter, IOException}
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
 
+import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
 import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
@@ -21,26 +22,22 @@ import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.evaluation.regression.RegressionEvaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+import utilities.properties.PropertiesReader.getProperties
 
 import scala.annotation.tailrec
 
-object NeuralNetworkCSVReader extends Logging {
-
-
+object MainNNActionGenerator extends Logging {
 
   def main(args: Array[String]): Unit = {
-    val properties: Properties = new Properties()
-    properties.load(new FileInputStream("src/main/resources/config.properties"))
+    val properties: Properties = getProperties()
 
     // Neural network conf parameters
     val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(properties)
     // Training conf parameters
     val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(properties)
-
 
     // Reading data and creating training and test iterators
     val data: String = IOUtils.toString(new FileInputStream("trainCSV.csv"), "UTF-8")
@@ -49,10 +46,10 @@ object NeuralNetworkCSVReader extends Logging {
     val trainingData = getTrainingData(splitData, splitSize)
     val testingData = getTestData(splitData, splitSize)
 
-    val trainingIter = new NeuralNetworkCSVReaderIterator(trainingConfItem.miniBatchSize,
+    val trainingIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
                                                           trainingConfItem.exampleLength,
                                                           trainingData)
-    val testIter = new NeuralNetworkCSVReaderIterator(trainingConfItem.miniBatchSize,
+    val testIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
                                                       trainingConfItem.exampleLength,
                                                       testingData)
 
@@ -94,9 +91,7 @@ object NeuralNetworkCSVReader extends Logging {
     // Evaluate best model obtained with test data.
     evaluateNet(bestModel, testIter)
 
-    val locationToSave = new File("esNet.zip")
-    bestModel.save(locationToSave)
-
+    saveNetwork(bestModel)
     // ---------------------------
 //
 //
@@ -116,6 +111,10 @@ object NeuralNetworkCSVReader extends Logging {
 //    writeScores(scores, "./trainingScores.txt")
   }
 
+  private def saveNetwork(net: MultiLayerNetwork): Unit = {
+    val locationToSave = new File("esNet.zip")
+    net.save(locationToSave)
+  }
   /**
    * Private tailrec function for traditional training without early stopping. It is used when no early stopping training is configured.
    * @param net, MultiLayerNetwork. Network to be trained.
@@ -128,8 +127,8 @@ object NeuralNetworkCSVReader extends Logging {
    */
   @tailrec
   private def fitAndSample(net: MultiLayerNetwork,
-                           iter: NeuralNetworkCSVReaderIterator,
-                           testIter: NeuralNetworkCSVReaderIterator,
+                           iter: ActionGeneratorIterator,
+                           testIter: ActionGeneratorIterator,
                            rng: Random,
                            trainingConfItem: NeuralNetworkTrainingConfItem,
                            idx: Int,
@@ -156,7 +155,7 @@ object NeuralNetworkCSVReader extends Logging {
    */
   @tailrec
   private def nextTraining(net: MultiLayerNetwork,
-                           iter: NeuralNetworkCSVReaderIterator,
+                           iter: ActionGeneratorIterator,
                            trainingConfItem: NeuralNetworkTrainingConfItem,
                            rng: Random): Unit = {
     if (iter.hasNext) {
@@ -175,7 +174,7 @@ object NeuralNetworkCSVReader extends Logging {
   private def generateSample(miniBatchNumber: Int,
                              trainingConfItem: NeuralNetworkTrainingConfItem,
                              net: MultiLayerNetwork): Unit = {
-    if (miniBatchNumber % trainingConfItem.generateSampleEveryNMinibatches == 0) {
+    if (miniBatchNumber % trainingConfItem.generateSamplesEveryNMinibatches == 0) {
       net.rnnClearPreviousState()
 
       val inputArray: INDArray = Nd4j.create(Array[Long](1, 3, 1), 'f')
@@ -209,7 +208,7 @@ object NeuralNetworkCSVReader extends Logging {
    * @param net, MultiLayerNetwork. Network used to generate the output that will be compared.
    */
   @tailrec
-  private def eval(regEval: RegressionEvaluation, testIter: NeuralNetworkCSVReaderIterator, net: MultiLayerNetwork): Unit = {
+  private def eval(regEval: RegressionEvaluation, testIter: ActionGeneratorIterator, net: MultiLayerNetwork): Unit = {
     if (testIter.hasNext) {
       net.rnnClearPreviousState()
       val testds = testIter.next()
@@ -226,7 +225,7 @@ object NeuralNetworkCSVReader extends Logging {
    * @param testIter, NeuralNetworkCSVReaderIterator. Iterator for getting testing data for the neural network.
    * @return RegressionEvaluation. Object with the stats of the regression evaluation performed.
    */
-  private def evaluateNet(net: MultiLayerNetwork, testIter: NeuralNetworkCSVReaderIterator): RegressionEvaluation = {
+  private def evaluateNet(net: MultiLayerNetwork, testIter: ActionGeneratorIterator): RegressionEvaluation = {
     val regEval = new RegressionEvaluation(3)
     eval(regEval, testIter, net)
     logger.debug(getSplitSymbol + regEval.stats())
@@ -347,7 +346,7 @@ object NeuralNetworkCSVReader extends Logging {
    * @param confItem, NeuralNetworkConfItem. Item with the configuration parameters for the neural network.
    * @param nIn, Int. Number of inputs for the first layer.
    * @param nOut, Int. Number of outputs of the last layer.
-   * @return, MultiLayerConfiguration. Neural network configured.
+   * @return MultiLayerConfiguration. Neural network configured.
    */
   private def configureNetwork(confItem: NeuralNetworkConfItem, nIn: Int, nOut: Int): MultiLayerConfiguration = {
     val nnConf = new NeuralNetConfiguration.Builder()
