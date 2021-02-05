@@ -3,6 +3,9 @@ package model
 // java imports
 import java.util.Random
 
+import model.exceptions.IncorrectCommandActionException
+import utilities.validations.ValidationsUtil.{checkActionValue, checkNotNegativeInt, checkNotNegativeLong, checkNotNull, checkValue, maxActionValue, maxDayValue, maxHourValue, minActionValue}
+
 // Command imports
 import twitterapi.commandActions.{PostCommand, RtCommand, ReplyCommand, ActionCommand}
 
@@ -36,33 +39,49 @@ object TypeAndDate extends Logging {
    * Function that builds a TypeAndDate object from a given day, hour and action and considering followed post actions
    * @param day, Int. Value of the day when the action will be executed. Must be between 0 and 6 inclusive.
    * @param hour, Int. Value of the hour when the action will be executed. Must be between 0 and 23 inclusive.
-   * @param action, Int. Value of the type of action that will be executed. Must be between 1 and 3 inclusive.
+   * @param actionValue, Int. Value of the type of action that will be executed. Must be between 1 and 3 inclusive.
    * @param followedPostActionsCount, Int. Count of followed post actions.
    * @param maxFollowedPostActions, Int. Number of maximum followed post actions.
    * @return TypeAndDate. Object containing the information for the next action to be executed.
    */
-  def buildTypeAndDateFromDayHourAndAction(day: Int, hour: Int, action: Int,
+  def buildTypeAndDateFromDayHourAndAction(day: Int, hour: Int, actionValue: Int,
                                            followedPostActionsCount: Int, maxFollowedPostActions: Int): TypeAndDate = {
+
+    checkNotNull(hour)
+    checkValue(hour, max = maxHourValue)
+    checkNotNull(day)
+    checkValue(day, max = maxDayValue)
+    checkNotNull(actionValue)
+    checkValue(actionValue, minActionValue, maxActionValue)
+    checkNotNull(followedPostActionsCount)
+    checkNotNegativeInt(followedPostActionsCount)
+    checkNotNull(maxFollowedPostActions)
+    checkNotNegativeInt(maxFollowedPostActions)
+
     if (followedPostActionsCount >= maxFollowedPostActions) {
       val max = 3
       val min = 2
       val notPostRandomAction: Int = new Random().nextInt(max-min) + min
       TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(notPostRandomAction)))
     }
-    if (action == 0) {
+    if (actionValue == 0) {
       TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(1)))
     }
     else {
-      TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(action)))
+      TypeAndDate(day, hour, createCommandAction(getActionFromIntValue(actionValue)))
     }
   }
 
 
   private def createCommandAction(action: Action): ActionCommand = {
+    checkNotNull(action)
+    checkActionValue(action)
+
     action match {
       case POST => new PostCommand
       case RT => new RtCommand
       case REPLY => new ReplyCommand
+      case _ => throw IncorrectCommandActionException()
     }
   }
   /**
@@ -72,6 +91,8 @@ object TypeAndDate extends Logging {
    * @return TypeAndDate. The TypeAndDate built object.
    */
   def postToTypeAndDate(lastTweet: Post): TypeAndDate = {
+    validatePostObject(lastTweet)
+
     val calendar = getCalendarInstance
     calendar.setTime(lastTweet.createdAt)
     val day: Int = getCalendarDay(calendar)
@@ -81,11 +102,26 @@ object TypeAndDate extends Logging {
   }
 
   /**
+   * Private function that checks a Post object
+   * @param post, Post. Post object which be validatedto be validated
+   */
+  private def validatePostObject(post: Post): Unit = {
+    checkNotNull(post)
+    checkNotNull(post.getInReplyToUserId)
+    checkNotNegativeLong(post.getInReplyToUserId)
+    checkNotNull(post.retweetedStatus)
+    checkNotNull(post.retweetedStatusUserId)
+    checkNotNegativeLong(post.retweetedStatusUserId)
+    checkNotNull(post.createdAt)
+  }
+  /**
    * Function that returns an action type as an Integer based on Post received as param.
    * @param post to identify type of action from Twitter.
    * @return an Int object that represents the action type.
    */
   private def getActionFromPostObject(post: Post): Action = {
+    validatePostObject(post)
+
     // If it is a rt, returns rt value that is 2
     if (post.retweetedStatusUserId == 1) {
       RT

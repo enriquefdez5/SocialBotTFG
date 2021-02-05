@@ -12,10 +12,6 @@ import utilities.neuralNetworks.NeuralNetworkUtils.prepareText
 class PostCommand extends Logging with ActionCommand {
 
   val value = 1
-
-  override def getValue(): Int = {
-    value
-  }
   
   override def execute(conf: ConfigRun): Unit = {
     // Text to post

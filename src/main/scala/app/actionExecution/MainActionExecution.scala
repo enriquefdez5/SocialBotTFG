@@ -1,18 +1,15 @@
 package app.actionExecution
 
-import java.io.FileInputStream
 import java.util
-import java.util.Properties
 
-import model.Action.{POST, REPLY, RT}
 import model.TypeAndDate
 import model.TypeAndDate.postToTypeAndDate
 import org.apache.logging.log4j.scala.Logging
-import twitterapi.TwitterService.{getTweets, getTwitterUsername, obtainTweetToReply, obtainTweetToRt}
-import twitterapi.TwitterServiceOperations._
+import twitterapi.TwitterService.getTweets
+import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMaxFollowedPostActions, obtainMeanActionsPerHour}
 import utilities.ConfigRun
 import utilities.dates.datesUtil.{buildDate, getCalendarInstance, waitForDate}
-import utilities.neuralNetworks.NeuralNetworkUtils.{generateNextAction, prepareText}
+import utilities.neuralNetworks.NeuralNetworkUtils.generateNextAction
 
 import scala.annotation.tailrec
 
@@ -22,9 +19,6 @@ object MainActionExecution extends Logging {
   def main(args: Array[String]): Unit = {
     // Twitter API search
     val conf = new ConfigRun(args)
-    // Read properties file
-    val properties: Properties = new Properties()
-    properties.load(new FileInputStream("src/main/resources/config.properties"))
 
     // Loop for generating and executing actions
     val idx = 0
@@ -67,7 +61,7 @@ object MainActionExecution extends Logging {
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
       val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions, conf)
-      val isPostAction: Boolean = newTypeAndDateAction.action.getValue() == 1
+      val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
       // Action at same hour
       if (isAtSameHour) {
@@ -112,8 +106,8 @@ object MainActionExecution extends Logging {
   /**
    * Function that will execute an action following typeAndDate object
    *
-   * @param typeAndDate item.
-   * @param conf        . Item needed to interact with Twitter API.
+   * @param typeAndDate, TypeAndDate item.
+   * @param conf, ConfigRun. Item needed to interact with Twitter API.
    */
   private def executeAction(typeAndDate: TypeAndDate, conf: ConfigRun): Unit = {
     val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)

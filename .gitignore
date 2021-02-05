@@ -1,7 +1,7 @@
 /target/
 /.idea/
 /logs/
-data/external/datasetTexto.txt
+data(manual)/external/datasetTexto.txt
 MvnAIBehaviour.iml
 scalastyle_config.xml
 scalastyle-output.xml

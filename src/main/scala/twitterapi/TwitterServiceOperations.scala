@@ -5,8 +5,9 @@ import java.util
 import model.Post
 import org.apache.logging.log4j.scala.Logging
 import twitter4j.Status
-import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
+import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate, replyTweet}
 import utilities.dates.datesUtil.{getCalendarInstance, groupTwitterActionsByDates}
+import utilities.validations.ValidationsUtil.{checkNotEmptyList, checkNotNegativeInt, checkNotNegativeLong, checkNotNull}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
@@ -22,6 +23,9 @@ object TwitterServiceOperations extends Logging {
    * @return a Seq[Post] that is the result of the transformation.
    */
   def statusesToPosts(tweets: Seq[Status]): Seq[Post] = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+
     val calendar = getCalendarInstance
     tweets.map(it => {
       calendar.setTime(it.getCreatedAt)
@@ -43,6 +47,11 @@ object TwitterServiceOperations extends Logging {
   @tailrec
   // TODO changed ResponseList[Status] to Seq[Status]. Check if it works
   def getLastTweetNotRetweeted(tweets: Seq[Status], idx: Int): Status = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+    checkNotNull(idx)
+    checkNotNegativeInt(idx)
+
     if (tweets(idx).isRetweet) {
       getLastTweetNotRetweeted(tweets, idx + 1)
     }
@@ -60,6 +69,11 @@ object TwitterServiceOperations extends Logging {
   @tailrec
   // TODO changed ResponseList[Status] to Seq[Status]. Check if it works
   def getLastTweetNotReplied(tweets: Seq[Status], idx: Int): Status = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+    checkNotNull(idx)
+    checkNotNegativeInt(idx)
+
     if (tweets(idx).getInReplyToStatusId != 0) {  // TODO check if is != 0 or null or nan...
       getLastTweetNotReplied(tweets, idx + 1)
     }
@@ -75,6 +89,9 @@ object TwitterServiceOperations extends Logging {
    * @return Long, an identifier of the most retweeted user.
    */
   def obtainMostRetweetedUserId(tweets: Seq[Post]): Long = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+
     // Filter rts
     val onlyRts = tweets.filter(it => {
       isRetweet(it.retweetedStatus)
@@ -96,6 +113,10 @@ object TwitterServiceOperations extends Logging {
    * @return Long, an identifier of the most replied user.
    */
   def obtainMostRepliedUserId(tweets: Seq[Post]): Long = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+
+
     // Filter replies
     val onlyReplied = tweets.filter(it => {
       isReplied(it.getInReplyToUserId)
@@ -119,6 +140,8 @@ object TwitterServiceOperations extends Logging {
    *         identifier.
    */
   def getMostInteractedUser(groupedTweets: Map[Long, Seq[Post]]): Long = {
+    checkNotNull(groupedTweets)
+
     val maxSize: Int = 0
     val mostInteractedUser: Long = 0
     val idx = 0
@@ -131,23 +154,33 @@ object TwitterServiceOperations extends Logging {
    * @param groupedTweets, Map[Long, Seq[Post] ]. A list of Post objects grouped by the user id who interacted with
    * them.
    * @param maxSize, Int. The greatest amount of interactions. Used to obtain the most interacted user.
-   * @param mostInteractedUser, Long. The user id of the user with the most interactions in each step of the loop.
+   * @param mostInteractedUserId, Long. The user id of the user with the most interactions in each step of the loop.
    * @param keys, List[Long]. A list that contains the users ids. It is used to access the map object.
    * @param idx, Int. Index to iterate over the keys list and used to know when to stop the loop.
    * @return Long. The most interacted user id.
    */
   @tailrec
-  private def getMostInteractedUserLoop(groupedTweets: Map[Long, Seq[Post]], maxSize: Int, mostInteractedUser: Long,
+  private def getMostInteractedUserLoop(groupedTweets: Map[Long, Seq[Post]], maxSize: Int, mostInteractedUserId: Long,
                                         keys: List[Long], idx: Int): Long = {
+    checkNotNull(groupedTweets)
+    checkNotNull(maxSize)
+    checkNotNegativeInt(maxSize)
+    checkNotNull(mostInteractedUserId)
+    checkNotNegativeLong(mostInteractedUserId)
+    checkNotNull(keys)
+    checkNotEmptyList(keys)
+    checkNotNull(idx)
+    checkNotNegativeInt(idx)
+
     if (idx < keys.length) {
       if (groupedTweets.get(keys(idx)).size > maxSize) {
         getMostInteractedUserLoop(groupedTweets, groupedTweets.get(keys(idx)).size, keys(idx), keys, idx + 1)
       }
       else {
-        getMostInteractedUserLoop(groupedTweets, maxSize, mostInteractedUser, keys, idx + 1)
+        getMostInteractedUserLoop(groupedTweets, maxSize, mostInteractedUserId, keys, idx + 1)
       }
     }
-    else { mostInteractedUser }
+    else { mostInteractedUserId }
   }
 
   /**
@@ -159,6 +192,11 @@ object TwitterServiceOperations extends Logging {
    * @return Int. The computed maximum number of followed post actions.
    */
   def obtainMaxFollowedPostActions(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+    checkNotNull(csvTweets)
+    checkNotEmptyList(csvTweets)
+
     val orderedDates: Seq[String] = getAllActionsOrderedByDate(tweets, csvTweets)
     val actions: Seq[String] = orderedDates.map(it => {
       it.split(csvSeparator)(1)
@@ -173,6 +211,9 @@ object TwitterServiceOperations extends Logging {
    * @return Double. It is the post proportion in all the given actions.
    */
   private def getPostProportion(actions: Seq[String]): Double = {
+    checkNotNull(actions)
+    checkNotEmptyList(actions)
+
     val postCount: Int = 0
     val totalCount: Int = 0
     val idx: Int = 0
@@ -190,6 +231,15 @@ object TwitterServiceOperations extends Logging {
    */
   @tailrec
   private def getPostProportionLoop(actions: Seq[String], postCount: Int, totalCount: Int, idx: Int): Double = {
+    checkNotNull(actions)
+    checkNotEmptyList(actions)
+    checkNotNull(postCount)
+    checkNotNegativeInt(postCount)
+    checkNotNull(totalCount)
+    checkNotNegativeInt(totalCount)
+    checkNotNull(idx)
+    checkNotNegativeInt(idx)
+
     if (idx < actions.length) {
       if (actions.get(idx) == "1") {
         getPostProportionLoop(actions, postCount + 1, totalCount + 1, idx + 1)
@@ -212,11 +262,17 @@ object TwitterServiceOperations extends Logging {
    * @return Int. Returns the maximum number of actions per hour found.
    */
   def obtainMaxActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+    checkNotNull(csvTweets)
+    checkNotEmptyList(csvTweets)
+
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMaxNumberOfActions(dayOfYearAndHourMap)
   }
 
   /**
+   * TODO(do it tailrec)
    * Function that obtains the maximum number of actions from a list of actions grouped by day of year and by hour.
    * @param dayOfYearAndHourMap, Iterable[Map[Int, Seq[String] ] ]. List of actions grouped by day of year and then by
    * hour.
@@ -244,11 +300,17 @@ object TwitterServiceOperations extends Logging {
    * @return Int. Returns the mean actions per hour.
    */
   def obtainMeanActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+    checkNotNull(csvTweets)
+    checkNotEmptyList(csvTweets)
+
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMean(dayOfYearAndHourMap)
   }
 
   /**
+   * TODO (do it tailrec)
    * Function that computes the mean value for a list of actions grouped by day of year and by hour.
    * @param dayOfYearAndHourMap, Iterable[Map[Int, Seq[String] ] ]. List of actions grouped by day of year and then by
    * hour.
@@ -267,31 +329,6 @@ object TwitterServiceOperations extends Logging {
     groupLengthSum / numberOfElements
   }
 
-  //  private def obtainMeanLoop(iterable: Iterable[Map[Int, Seq[String]]], idx: Int, sum: Int): Unit = {
-  //    if (idx >= iterable.size) {
-  //      sum
-  //    }
-  //    else {
-  //      val iterableToList = iterable.toList
-  //      val anotherIdx = 20
-  //      val map = iterableToList(anotherIdx)
-  //      val mapListKeys = map.keys.toList
-  //      val idx = 0
-  //      val sum = obtainSumInnerLoop(map, mapListKeys, idx, 0)
-  //    }
-  //  }
-  //
-  //  @tailrec
-  //  private def obtainSumInnerLoop(mapList: Map[Int, Seq[String]], keys: util.List[Int], idx: Int, sum: Int): Int = {
-  //    if (idx < keys.length) {
-  //      obtainSumInnerLoop(mapList, keys, idx+1, sum + mapList.get(keys(idx)).size)
-  //    }
-  //    else {
-  //      sum
-  //    }
-  //  }
-
-
   /**
    * Function that filters a sequence of tweets into a sequence of retweets and maps that sequence into a sequence of
    * strings composed with those tweets' dates
@@ -300,6 +337,9 @@ object TwitterServiceOperations extends Logging {
    * @return Seq[String]. Converted sequence of tweets into seq of strings composed by dates.
    */
   def obtainRtsDates(tweets: Seq[Post]): Seq[String] = {
+    checkNotNull(tweets)
+    checkNotEmptyList(tweets)
+
     val onlyRTs = tweets.filter(tweet => {
       isRetweet(tweet.retweetedStatus)
     })
@@ -323,10 +363,9 @@ object TwitterServiceOperations extends Logging {
    * @return Boolean. True if it is a reply action and false if it is not.
    */
   private def isReplied(replyId: Long): Boolean = {
+    checkNotNull(replyId)
+    checkNotNegativeLong(replyId)
+
     replyId != -1
   }
-
-
-
-
 }

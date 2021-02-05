@@ -25,22 +25,21 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-import utilities.properties.PropertiesReader.getProperties
+import utilities.properties.PropertiesReaderUtil.{getProperties, properties}
 
 import scala.annotation.tailrec
 
 object MainNNActionGenerator extends Logging {
 
   def main(args: Array[String]): Unit = {
-    val properties: Properties = getProperties()
 
     // Neural network conf parameters
-    val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(properties)
+    val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(getProperties)
     // Training conf parameters
-    val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(properties)
+    val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(getProperties)
 
     // Reading data and creating training and test iterators
-    val data: String = IOUtils.toString(new FileInputStream("trainCSV.csv"), "UTF-8")
+    val data: String = IOUtils.toString(new FileInputStream(getProperties.getProperty("csvTweetsFileName")), "UTF-8")
     val splitData = data.split(getSplitSymbol)
     val splitSize: Int = (splitData.length * 80) / 100
     val trainingData = getTrainingData(splitData, splitSize)
@@ -385,29 +384,6 @@ object MainNNActionGenerator extends Logging {
         .activation(confItem.activationLSTM).build())
       addLayers(conf, confItem, confItem.layerWidth, idx + 1)
     }
-  }
-
-  /**
-   * Private function for logging training loss scores into a file.
-   * @param scores, ArrayList[String]. List of string containing score values to be saved on a file.
-   * @param fileName, String. File name where scores will be saved.
-   */
-  private def writeScores(scores: util.ArrayList[String], fileName: String): Unit = {
-    // FileWriter
-    val file = new File(fileName)
-    val bw = new BufferedWriter(new FileWriter(file))
-
-    try {
-      for ( i <- 0 until scores.size()) {
-        bw.write(scores.get(i))
-      }
-    }
-    catch {
-      case ioexc: IOException =>
-        logger.error("Ups! Something went wrong writing on the file", ioexc)
-    }
-    // Closing the buffer
-    bw.close()
   }
 
   /**
