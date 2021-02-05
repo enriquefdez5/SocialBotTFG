@@ -6,14 +6,17 @@ import java.util.{Calendar, Date}
 
 import model.Post
 import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
+import utilities.validations.ValidationsUtil.{checkNotEmptyString, checkNotNull, checkValue, maxDayValue, maxHourValue}
 
 import scala.annotation.tailrec
 
 object datesUtil {
 
-
   def groupTwitterActionsByDates(tweets: Seq[Post], csvTweets: util.ArrayList[String])
-  : Iterable[Map[Int, Seq[String]]] = {
+    : Iterable[Map[Int, Seq[String]]] = {
+    checkNotNull(tweets)
+    checkNotNull(csvTweets)
+
     val orderedDates = getAllActionsOrderedByDate(tweets, csvTweets)
 
     val apiPattern = "EEE MMM dd HH:mm:ss z yyyy"
@@ -33,8 +36,6 @@ object datesUtil {
     dayOfYearAndHourMap
   }
 
-
-
   /**
    * Function that builds date from day and hour values.
    * @param dayOfWeek. Integer that represents the day of the week.
@@ -42,6 +43,11 @@ object datesUtil {
    * @return a date object with day and hour from param values. Minutes and seconds set to 0.
    */
   def buildDate(dayOfWeek: Int, hourOfDay: Int): Date = {
+    checkNotNull(dayOfWeek)
+    checkNotNull(hourOfDay)
+    checkValue(dayOfWeek, max = maxDayValue)
+    checkValue(hourOfDay, max = maxHourValue)
+
     val calendar = getCalendarInstance
     val date = calendar.getTime
     calendar.setTime(date)
@@ -62,6 +68,9 @@ object datesUtil {
    */
   @tailrec
   def waitForDate(dateToWaitFor: Date, nowDate: Date): Boolean = {
+    checkNotNull(dateToWaitFor)
+    checkNotNull(nowDate)
+
     if (nowDate.after(dateToWaitFor)) {
       true
     }
@@ -84,6 +93,8 @@ object datesUtil {
    * @return Int. Value of the day of week contained in the calendar object.
    */
   def getCalendarDay(calendar: Calendar): Int = {
+    checkNotNull(calendar)
+
     calendar.get(Calendar.DAY_OF_WEEK)
   }
 
@@ -93,6 +104,8 @@ object datesUtil {
    * @return Int. Value of the hour of the day contained in the calendar object.
    */
   def getCalendarHour(calendar: Calendar): Int = {
+    checkNotNull(calendar)
+
     calendar.get(Calendar.HOUR_OF_DAY)
   }
 
@@ -102,21 +115,10 @@ object datesUtil {
    * @return SimpleDateFormat. The simple date format built with the given pattern.
    */
   def getSimpleDateFormat(pattern: String): SimpleDateFormat = {
-    new SimpleDateFormat(pattern)
-  }
+    checkNotNull(pattern)
+    checkNotEmptyString(pattern)
 
-  // TODO remove if not used.
-  /**
-   * Function that adds given minutes to a given date.
-   * @param date, Date. The given date which will be updated.
-   * @param timeToAddInMinutes, Int. The number of minutes that will be added to the given date.
-   * @return Date. An updated date.
-   */
-  private def getUpdatedDate(date: Date, timeToAddInMinutes: Int): Date = {
-    val calendar = getCalendarInstance
-    calendar.setTime(date)
-    calendar.add(Calendar.MINUTE, timeToAddInMinutes)
-    calendar.getTime
+    new SimpleDateFormat(pattern)
   }
 
   /**
@@ -125,6 +127,8 @@ object datesUtil {
    * @return Date. Date object containing the first day of the month of the parameter date.
    */
   def getFirstDayOfMonth(date: Date): Date = {
+    checkNotNull(date)
+
     val calendar = getCalendarInstance
     calendar.setTime(date)
     calendar.set(Calendar.DAY_OF_MONTH, 1)

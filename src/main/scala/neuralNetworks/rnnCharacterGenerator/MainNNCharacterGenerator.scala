@@ -18,7 +18,7 @@ import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
-import utilities.properties.PropertiesReader.getProperties
+import utilities.properties.PropertiesReaderUtil.getProperties
 
 import scala.annotation.tailrec
 
@@ -26,11 +26,10 @@ object MainNNCharacterGenerator extends Logging {
 
   def main(args: Array[String]): Unit = {
 
-    val properties: Properties = getProperties()
     // Neural network conf parameters
-    val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(properties)
+    val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(getProperties)
     // Training conf parameters
-    val trainingConfItem: NeuralNetworkTrainingConfItem = createNetworkTrainingConfItem(properties)
+    val trainingConfItem: NeuralNetworkTrainingConfItem = createNetworkTrainingConfItem(getProperties)
 
     // Optional character initialization. A random character is used if null. Initialization characters must all be in
     // validCharactersList.
@@ -40,16 +39,12 @@ object MainNNCharacterGenerator extends Logging {
     // Valid characters used for training. Others will be removed and not used for training.
 
     // Reading data from file
-    val data = IOUtils.toString(new FileInputStream("src/data(not modify)/datasetTexto.txt"), "UTF-8")
+    val data = IOUtils.toString(new FileInputStream(getProperties.getProperty("dataSetFileName")), "UTF-8")
     val iter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
                                                               trainingConfItem.exampleLength, rng, data)
 
-
-    val nIn = iter.inputColumns()
-    val nOut = iter.totalOutcomes()
-
     // Set up network configuration:
-    val conf: MultiLayerConfiguration = configureNetwork(confItem, nIn, nOut)
+    val conf: MultiLayerConfiguration = configureNetwork(confItem, iter.inputColumns(), iter.totalOutcomes())
     val net = new MultiLayerNetwork(conf)
     net.init()
     net.setListeners(new ScoreIterationListener(1))

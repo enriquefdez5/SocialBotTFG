@@ -12,12 +12,15 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
 import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
-import twitterapi.TwitterService.{getLastFiveTweets, getTwitterUsername, properties}
+import twitterapi.TwitterService.getLastFiveTweets
 import utilities.ConfigRun
+import utilities.properties.PropertiesReaderUtil.getProperties
 
 import scala.annotation.tailrec
 
 object NeuralNetworkUtils extends Logging {
+
+  val properties = getProperties
 
   /**
    * Function that loads neural network for generating text.
@@ -66,10 +69,8 @@ object NeuralNetworkUtils extends Logging {
    * @return TypeAndDate. TypeAndDate object with the generated action type and execution date.
    */
   def generateNextAction(followedPostActionsCount: Int, maxFollowedPostActions: Int, conf: ConfigRun): TypeAndDate = {
-    // Twitter username where tweets will be search
-    val twitterUserName = getTwitterUsername
     // Get last tweet
-    val tweets = getLastFiveTweets(conf, twitterUserName)
+    val tweets = getLastFiveTweets(conf, properties.getProperty("twitterUsername"))
     val inputArray = getNNInputArrayFromTweets(tweets)
     generateNextTypeAndDateAction(followedPostActionsCount, maxFollowedPostActions, inputArray)
   }
@@ -168,7 +169,7 @@ object NeuralNetworkUtils extends Logging {
     val typeAndDate: TypeAndDate = postToTypeAndDate(post)
     inputArray.putScalar(Array[Long](idx, 0, 0), typeAndDate.dayOfWeek.toLong / 7)
     inputArray.putScalar(Array[Long](idx, 1, 0), typeAndDate.hourOfDay.toLong / 23)
-    inputArray.putScalar(Array[Long](idx, 2, 0), typeAndDate.action.getValue() / 3)
+    inputArray.putScalar(Array[Long](idx, 2, 0), typeAndDate.action.value / 3)
   }
 
   /**
