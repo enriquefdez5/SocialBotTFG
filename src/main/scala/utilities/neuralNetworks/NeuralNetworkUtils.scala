@@ -14,13 +14,12 @@ import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
 import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
 import twitterapi.TwitterService.getLastFiveTweets
 import utilities.ConfigRun
-import utilities.properties.PropertiesReaderUtil.getProperties
+import utilities.properties.PropertiesReaderUtil
 
 import scala.annotation.tailrec
 
-object NeuralNetworkUtils extends Logging {
+trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
 
-  val properties = getProperties
 
   /**
    * Function that loads neural network for generating text.
@@ -30,8 +29,8 @@ object NeuralNetworkUtils extends Logging {
   def prepareText(nCharactersToSample: Int): String = {
     val initializationString: String = getNoInitializationString
     val rng = new Random()
-    val miniBatchSize = properties.getProperty("trainingMiniBatchSize").toInt
-    val exampleLength = properties.getProperty("trainingExampleLength").toInt
+    val miniBatchSize = getProperties.getProperty("trainingMiniBatchSize").toInt
+    val exampleLength = getProperties.getProperty("trainingExampleLength").toInt
     val iter: CharacterGeneratorIterator = getCharacterIterator(miniBatchSize, exampleLength, rng)
     val postNCharactersToSample = nCharactersToSample
     val textNN = loadNetwork("./models/bestIbai52epochs.zip")
@@ -70,7 +69,7 @@ object NeuralNetworkUtils extends Logging {
    */
   def generateNextAction(followedPostActionsCount: Int, maxFollowedPostActions: Int, conf: ConfigRun): TypeAndDate = {
     // Get last tweet
-    val tweets = getLastFiveTweets(conf, properties.getProperty("twitterUsername"))
+    val tweets = getLastFiveTweets(conf, getProperties.getProperty("twitterUsername"))
     val inputArray = getNNInputArrayFromTweets(tweets)
     generateNextTypeAndDateAction(followedPostActionsCount, maxFollowedPostActions, inputArray)
   }

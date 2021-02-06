@@ -6,7 +6,7 @@ import java.util.Properties
 
 import org.apache.logging.log4j.scala.Logging
 
-object PropertiesReaderUtil extends Logging {
+trait PropertiesReaderUtil extends Logging {
 
   private val properties: Properties = new Properties()
 
@@ -17,7 +17,7 @@ object PropertiesReaderUtil extends Logging {
     properties
   }
 
-  def saveProperties: Unit = {
+  def saveProperties(): Unit = {
     try {
       val out: OutputStreamWriter = new OutputStreamWriter(new FileOutputStream("src/main/resources/config.properties"),
         StandardCharsets.UTF_8)

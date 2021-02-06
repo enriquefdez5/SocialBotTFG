@@ -1,16 +1,16 @@
 package model
 
-import utilities.validations.ValidationsUtil.{checkValue, maxActionValue, minActionValue}
+import utilities.validations.ValidationsUtil
 
 /**
  *  Enumeration object containing the three types of Actions available.
  */
 
-object Action extends Enumeration {
+object Action extends Enumeration with ValidationsUtil {
   type Action = Value
   val POST, RT, REPLY = Value
 
-  def getPossibleActions(): ValueSet = {
+  def getPossibleActions: ValueSet = {
     Action.values
   }
 

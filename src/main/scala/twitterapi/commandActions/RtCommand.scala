@@ -3,10 +3,10 @@ package twitterapi.commandActions
 import org.apache.logging.log4j.scala.Logging
 import twitterapi.TwitterService.{getTweets, obtainTweetToRt}
 import twitterapi.TwitterServiceOperations.obtainMostRetweetedUserId
-import utilities.properties.PropertiesReaderUtil.getProperties
 import utilities.ConfigRun
+import utilities.properties.PropertiesReaderUtil
 
-class RtCommand extends Logging with ActionCommand {
+class RtCommand extends Logging with ActionCommand with PropertiesReaderUtil {
 
   val value = 2
 

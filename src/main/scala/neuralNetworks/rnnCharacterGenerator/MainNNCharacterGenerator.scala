@@ -18,11 +18,11 @@ import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
-import utilities.properties.PropertiesReaderUtil.getProperties
+import utilities.properties.PropertiesReaderUtil
 
 import scala.annotation.tailrec
 
-object MainNNCharacterGenerator extends Logging {
+object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
 
   def main(args: Array[String]): Unit = {
 
@@ -59,7 +59,7 @@ object MainNNCharacterGenerator extends Logging {
   }
 
   private def saveNetwork(net: MultiLayerNetwork): Unit = {
-    val locationToSave = new File("src/data(tmp)/nn.zip")
+    val locationToSave = new File("models/nnActions.zip")
     net.save(locationToSave, true)
   }
 

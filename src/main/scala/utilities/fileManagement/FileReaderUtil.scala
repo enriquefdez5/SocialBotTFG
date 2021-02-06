@@ -1,15 +1,14 @@
 package utilities.fileManagement
 
-import java.io.{BufferedReader, File, FileInputStream, FileReader, IOException}
+import java.io.{BufferedReader, File, FileReader, IOException}
 import java.util
-import java.util.Properties
 
 import org.apache.logging.log4j.scala.Logging
-import utilities.properties.PropertiesReaderUtil.{getProperties, properties}
+import utilities.properties.PropertiesReaderUtil
 
 import scala.annotation.tailrec
 
-object FileReaderUtil extends Logging {
+trait FileReaderUtil extends Logging with PropertiesReaderUtil {
 
   def readCSVFile(fileName: String = getProperties.getProperty("csvTweetsFileName")): util.ArrayList[String] = {
     val file = new File(fileName)

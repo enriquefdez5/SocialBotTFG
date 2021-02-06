@@ -7,9 +7,9 @@ import org.apache.logging.log4j.scala.Logging
 import utilities.ConfigRun
 
 // import nn prepare text function
-import utilities.neuralNetworks.NeuralNetworkUtils.prepareText
+import utilities.neuralNetworks.NeuralNetworkUtils
 
-class PostCommand extends Logging with ActionCommand {
+class PostCommand extends Logging with ActionCommand with NeuralNetworkUtils {
 
   val value = 1
   

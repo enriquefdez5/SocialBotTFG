@@ -2,20 +2,20 @@ package twitterapi
 
 import com.vdurmont.emoji.EmojiParser
 import org.apache.logging.log4j.scala.Logging
-import utilities.validations.ValidationsUtil.checkNotEmptyList
+import utilities.validations.ValidationsUtil
 
-object TwitterFilter extends Logging{
+object TwitterFilter extends Logging with ValidationsUtil{
 
 
   /**
    * This function is used to clean tweets text.
    * @param tweets, Seq[String] to filter.
-   * @return, Seq[String]. Filtered tweets.
+   * @return Seq[String]. Filtered tweets.
    */
   def cleanTweets(tweets: Seq[String], language: Boolean): Seq[String] = {
     checkNotEmptyList(tweets)
     val commonFilteredTweets = commonClean(tweets)
-    if (language) spanishFilter(tweets) else englishFilter(tweets)
+    if (language) spanishFilter(commonFilteredTweets) else englishFilter(commonFilteredTweets)
   }
 
   private def commonClean(tweets: Seq[String]): Seq[String] = {

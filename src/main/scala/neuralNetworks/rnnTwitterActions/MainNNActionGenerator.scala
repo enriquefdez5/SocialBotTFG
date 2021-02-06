@@ -1,6 +1,6 @@
 package neuralNetworks.rnnTwitterActions
 
-import java.io.{BufferedWriter, File, FileInputStream, FileWriter, IOException}
+import java.io.{File, FileInputStream}
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
@@ -25,11 +25,11 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-import utilities.properties.PropertiesReaderUtil.{getProperties, properties}
+import utilities.properties.PropertiesReaderUtil
 
 import scala.annotation.tailrec
 
-object MainNNActionGenerator extends Logging {
+object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
 
   def main(args: Array[String]): Unit = {
 
@@ -71,7 +71,7 @@ object MainNNActionGenerator extends Logging {
       .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
       .scoreCalculator(new DataSetLossCalculator(testIter, true))
       .evaluateEveryNEpochs(1)
-      .modelSaver(new LocalFileModelSaver("earlyStop.zip"))
+      .modelSaver(new LocalFileModelSaver("models/earlyStop.zip"))
       .build()
 
     val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
@@ -111,7 +111,7 @@ object MainNNActionGenerator extends Logging {
   }
 
   private def saveNetwork(net: MultiLayerNetwork): Unit = {
-    val locationToSave = new File("esNet.zip")
+    val locationToSave = new File("/models/nnCharacters.zip")
     net.save(locationToSave)
   }
   /**

@@ -2,20 +2,22 @@ package app.dataRecovery
 
 // Windows cmd
 import twitterapi.TwitterService.{getAllActionsOrderedByDate, getTweets}
-import utilities.properties.PropertiesReaderUtil.saveProperties
+import utilities.properties.PropertiesReaderUtil
 
-import scala.sys.process._
+// Uncomment if cmd is needed
+// import scala.sys.process._
 
 // cmd input for twitterusername
 import scala.io.StdIn.readLine
 
 // properties file
-import utilities.properties.PropertiesReaderUtil.getProperties
 
 // java conversions
 import scala.collection.JavaConversions._
 
-//import twitterapi.getOldTweets.Got.{getOldTweetsByUsername, getTextFromGetOldTweets}
+// Uncomment if got could be used
+// import twitterapi.getOldTweets.Got.{getOldTweetsByUsername, getTextFromGetOldTweets}
+
 import utilities.fileManagement.FileReaderUtil
 
 // logging
@@ -28,7 +30,7 @@ import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 import utilities.ConfigRun
 import utilities.fileManagement.FileWriterUtil
 
-object MainDataRecovery extends Logging {
+object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil with PropertiesReaderUtil {
 
 
   // Main method for reading tweets and saving in file for later training.
@@ -69,7 +71,7 @@ object MainDataRecovery extends Logging {
 
 
     // Update properties file with new info
-    saveProperties
+    saveProperties()
 
     // Getting csv tweets
     // TODO see how to code it
@@ -80,7 +82,7 @@ object MainDataRecovery extends Logging {
         // Reading from manual csv. Csv obtained by executing cmd command outside app and importing file into app
         // manually
     val textColumn: Int = 6
-    val tweets = FileReaderUtil.readCSVFile()
+    val tweets = readCSVFile()
     tweets.remove(0)
     val tweetText = tweets.map(_.split(",")(textColumn).replace("\"", ""))
 
@@ -105,10 +107,10 @@ object MainDataRecovery extends Logging {
 
 
     // Write tweets text in file
-    FileWriterUtil.writeDataOnAFile(characterTrainingTweets)
+    writeDataOnAFile(characterTrainingTweets)
 
     // Write tweets actions in file
-    FileWriterUtil.writeDataOnAFile(actionTrainingTweets, getProperties.getProperty(csvActionsPropertyName))
+    writeDataOnAFile(actionTrainingTweets, getProperties.getProperty(csvActionsPropertyName))
     logger.info("AIBheaviour twitter says good bye!")
   }
 }

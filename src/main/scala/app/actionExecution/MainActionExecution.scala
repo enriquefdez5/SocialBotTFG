@@ -8,12 +8,12 @@ import org.apache.logging.log4j.scala.Logging
 import twitterapi.TwitterService.getTweets
 import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMaxFollowedPostActions, obtainMeanActionsPerHour}
 import utilities.ConfigRun
-import utilities.dates.datesUtil.{buildDate, getCalendarInstance, waitForDate}
-import utilities.neuralNetworks.NeuralNetworkUtils.generateNextAction
-
+import utilities.dates.DatesUtil
+import utilities.fileManagement.FileReaderUtil
+import utilities.neuralNetworks.NeuralNetworkUtils
 import scala.annotation.tailrec
 
-object MainActionExecution extends Logging {
+object MainActionExecution extends Logging with FileReaderUtil with NeuralNetworkUtils with DatesUtil {
 
 
   def main(args: Array[String]): Unit = {
@@ -28,8 +28,7 @@ object MainActionExecution extends Logging {
     val tweets = getTweets(conf, twitterUser)
 
     // Get csv tweets and remove header
-    val csvTweets: util.ArrayList[String] = utilities.fileManagement.FileReaderUtil
-      .readCSVFile("./src/data(not modify)/ibaiLLanos.csv")
+    val csvTweets: util.ArrayList[String] = readCSVFile("./src/data(not modify)/ibaiLLanos.csv")
     csvTweets.remove(0)
 
     // Mean and max actions per hour
@@ -47,7 +46,6 @@ object MainActionExecution extends Logging {
   }
 
 
-  // Third loop method with checks for actions in hour and followed post actions
   /**
    * This method contains the loop for generating and executing actions.
    *

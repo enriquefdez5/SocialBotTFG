@@ -6,11 +6,10 @@ import java.util.{Calendar, Date}
 
 import model.Post
 import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
-import utilities.validations.ValidationsUtil.{checkNotEmptyString, checkNotNull, checkValue, maxDayValue, maxHourValue}
+import utilities.validations.ValidationsUtil
 
-import scala.annotation.tailrec
 
-object datesUtil {
+trait DatesUtil extends ValidationsUtil {
 
   def groupTwitterActionsByDates(tweets: Seq[Post], csvTweets: util.ArrayList[String])
     : Iterable[Map[Int, Seq[String]]] = {
@@ -60,13 +59,15 @@ object datesUtil {
     calendar.getTime
   }
 
+
+
+
   /**
    * Function that waits for now date to be after neural network generated date
    * @param dateToWaitFor. Date object that represents a neural network generated date.
    * @param nowDate. Date object that represents actual date.
    * @return Boolean object if now date is after generated date. If not, it waits until that happens.
    */
-  @tailrec
   def waitForDate(dateToWaitFor: Date, nowDate: Date): Boolean = {
     checkNotNull(dateToWaitFor)
     checkNotNull(nowDate)

@@ -4,7 +4,7 @@ package model
 import java.util.Random
 
 import model.exceptions.IncorrectCommandActionException
-import utilities.validations.ValidationsUtil.{checkActionValue, checkNotNegativeInt, checkNotNegativeLong, checkNotNull, checkValue, maxActionValue, maxDayValue, maxHourValue, minActionValue}
+import utilities.validations.ValidationsUtil
 
 // Command imports
 import twitterapi.commandActions.{PostCommand, RtCommand, ReplyCommand, ActionCommand}
@@ -19,7 +19,7 @@ import model.Action.Action
 import org.apache.logging.log4j.scala.Logging
 
 // dates imports
-import utilities.dates.datesUtil.{getCalendarDay, getCalendarHour, getCalendarInstance}
+import utilities.dates.DatesUtil
 
 /**
  * Case class that represents an action to be executed on Twitter the dayOfWeek day at hourOfDay hour. The action to
@@ -33,7 +33,7 @@ import utilities.dates.datesUtil.{getCalendarDay, getCalendarHour, getCalendarIn
  */
 case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: ActionCommand)
 
-object TypeAndDate extends Logging {
+object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
 
   /**
    * Function that builds a TypeAndDate object from a given day, hour and action and considering followed post actions

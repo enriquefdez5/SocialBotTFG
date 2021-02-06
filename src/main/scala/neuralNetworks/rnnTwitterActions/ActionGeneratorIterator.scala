@@ -9,12 +9,13 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
+import utilities.validations.ValidationsUtil
 
 import scala.annotation.tailrec
 
 class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
                               strings: Array[String])
-                                    extends DataSetIterator with Logging {
+                                    extends DataSetIterator with Logging with ValidationsUtil {
 
   // Get values from strings array parameter
   val values: util.List[String] = getValues(0, new util.ArrayList[String]())
@@ -63,7 +64,7 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     //        }
     //      }
     //    }
-    //TODO Check if this works. The call below is the same as the commented code above.
+    // TODO Check if this works. The call below is the same as the commented code above.
     if (idx < values.size()) {
       if (strings(idx) == "-1") {
         if (idx != 0) {
@@ -99,7 +100,7 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
    * @return Dataset. Dataset built with the given size.
    */
   override def next(num: Int): DataSet = {
-    if (keys.size() == 0) throw new NoSuchElementException()
+    checkNotEmptyLinkedList(keys)
     val currMiniBatchSize = Math.min(num, keys.size())
 
     val input: INDArray = Nd4j.create(Array[Long](currMiniBatchSize, 3, exampleLength), 'f')

@@ -5,7 +5,7 @@ import model.Action.{Action, getPossibleActions}
 import model.exceptions.{EmptyStringException, IncorrectSizeListException, InvalidActionException, NullParamException, WrongParamValueException}
 import org.apache.logging.log4j.scala.Logging
 
-object ValidationsUtil extends Logging {
+trait ValidationsUtil extends Logging {
 
   val maxDayValue = 6
   val maxHourValue = 23
@@ -14,8 +14,7 @@ object ValidationsUtil extends Logging {
 
 
   def checkActionValue(action: Action): Unit = {
-    val possibleActionValues: Action.ValueSet = getPossibleActions()
-    val isValid: Boolean = isAValidAction(action, possibleActionValues)
+    val isValid: Boolean = isAValidAction(action, getPossibleActions)
     if ( !isValid) {
       throw InvalidActionException("The given action is not valid or implemented yet")
     }
@@ -37,30 +36,36 @@ object ValidationsUtil extends Logging {
   }
   def checkNotNegativeInt(value: Int): Unit = {
     if (value < 0) {
-      throw WrongParamValueException("Int param value cant be less than 0")
+      throw WrongParamValueException("Int param value can not be less than 0")
     }
   }
   def checkNotNegativeLong(value: Long): Unit = {
     if (value < 0) {
-      throw WrongParamValueException("Long param value cant be less than 0")
+      throw WrongParamValueException("Long param value can not be less than 0")
     }
   }
 
   def checkNotNull(item: Any): Unit = {
     if (item == null) {
-      throw NullParamException("Param cant be null")
+      throw NullParamException("Param can not be null")
     }
   }
 
   def checkNotEmptyString(string: String): Unit = {
     if (string == "" || string == " ") {
-      throw EmptyStringException("The string cant be empty or blank")
+      throw EmptyStringException("The string can not be empty or blank")
     }
   }
 
   def checkNotEmptyList(list: Seq[Any]): Unit = {
     if (list.isEmpty) {
-      throw IncorrectSizeListException("List cant be empty")
+      throw IncorrectSizeListException("List can not be empty")
+    }
+  }
+
+  def checkNotEmptyLinkedList(list: java.util.LinkedList[Int]): Unit = {
+    if (list.isEmpty) {
+      throw IncorrectSizeListException("List can not be empty")
     }
   }
 

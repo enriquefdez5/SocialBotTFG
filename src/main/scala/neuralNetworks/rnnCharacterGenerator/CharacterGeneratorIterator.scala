@@ -9,11 +9,12 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
+import utilities.validations.ValidationsUtil
 
 import scala.annotation.tailrec
 
 class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                                 splittedData: String) extends DataSetIterator with Logging {
+                                 splittedData: String) extends DataSetIterator with Logging with ValidationsUtil {
 
   // Valid chars used for training
   //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\"\n',.?;()[]{}:!-#@ "
@@ -104,8 +105,7 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
 
 
   override def next(num: Int): DataSet = {
-    if (exampleStartOffsets.size() == 0 ) throw new NoSuchElementException()
-
+    checkNotEmptyLinkedList(exampleStartOffsets)
     val currMiniBatchSize = Math.min(num, exampleStartOffsets.size())
     // Allocate space:
     // Note the order here:

@@ -5,9 +5,9 @@ import java.util
 import model.Post
 import org.apache.logging.log4j.scala.Logging
 import twitter4j.Status
-import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate, replyTweet}
-import utilities.dates.datesUtil.{getCalendarInstance, groupTwitterActionsByDates}
-import utilities.validations.ValidationsUtil.{checkNotEmptyList, checkNotNegativeInt, checkNotNegativeLong, checkNotNull}
+import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
+import utilities.dates.DatesUtil
+import utilities.validations.ValidationsUtil
 
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
@@ -15,7 +15,7 @@ import scala.collection.JavaConversions._
 /**
  * Object that contains the functions and operations the Twitter Service Object needs.
  */
-object TwitterServiceOperations extends Logging {
+object TwitterServiceOperations extends Logging with ValidationsUtil with DatesUtil {
 
   /**
    * Function that transforms a sequence of status (Seq[Status]) into  a sequence of Post objects (Seq[Post]).

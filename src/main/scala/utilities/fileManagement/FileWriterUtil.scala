@@ -4,9 +4,9 @@ import java.io.{BufferedWriter, File, FileWriter, IOException}
 import java.util
 
 import org.apache.logging.log4j.scala.Logging
-import utilities.properties.PropertiesReaderUtil.{getProperties, properties}
+import utilities.properties.PropertiesReaderUtil
 
-object FileWriterUtil extends Logging{
+trait FileWriterUtil extends Logging with PropertiesReaderUtil {
 
 
   /**

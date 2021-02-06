@@ -1,11 +1,10 @@
 package twitterapi
 
 // util libs
-import java.io.FileInputStream
 import java.util
 
-import utilities.properties.PropertiesReaderUtil.{getProperties, properties}
-import utilities.validations.ValidationsUtil.{checkNotEmptyList, checkNotEmptyString, checkNotNegativeInt, checkNotNegativeLong, checkNotNull}
+import utilities.properties.PropertiesReaderUtil
+import utilities.validations.ValidationsUtil
 
 // logging
 import org.apache.logging.log4j.scala.Logging
@@ -24,14 +23,12 @@ import twitter4j.conf.ConfigurationBuilder
 // app imports
 import utilities.ConfigRun
 import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainRtsDates, statusesToPosts}
-import utilities.dates.datesUtil.{getCalendarInstance, getSimpleDateFormat}
+import utilities.dates.DatesUtil
 
 
-object TwitterService extends Logging {
+object TwitterService extends Logging with PropertiesReaderUtil with ValidationsUtil with DatesUtil {
 
   val csvSeparator = ","
-
-  val twitterUsername = getTwitterUsername
 
   /**
    * Function that uses Twitter API to recover the last five tweets from the given user.

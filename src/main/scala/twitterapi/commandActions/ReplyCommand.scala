@@ -4,10 +4,10 @@ import org.apache.logging.log4j.scala.Logging
 import twitterapi.TwitterService.obtainTweetToReply
 import twitterapi.TwitterServiceOperations.obtainMostRepliedUserId
 import utilities.ConfigRun
-import utilities.neuralNetworks.NeuralNetworkUtils.prepareText
-import utilities.properties.PropertiesReaderUtil.getProperties
+import utilities.neuralNetworks.NeuralNetworkUtils
+import utilities.properties.PropertiesReaderUtil
 
-class ReplyCommand extends Logging with ActionCommand {
+class ReplyCommand extends Logging with ActionCommand with PropertiesReaderUtil with NeuralNetworkUtils{
 
   val value = 3
 
