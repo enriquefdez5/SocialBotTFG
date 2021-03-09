@@ -5,16 +5,17 @@ import java.util
 import java.util.{Calendar, Date}
 
 import model.Post
+import model.TypeAndDate.{maxDayValue, maxHourValue}
 import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
 import utilities.validations.ValidationsUtil
 
 
 trait DatesUtil extends ValidationsUtil {
 
+  val oneMinuteInMillis = 60000
+
   def groupTwitterActionsByDates(tweets: Seq[Post], csvTweets: util.ArrayList[String])
     : Iterable[Map[Int, Seq[String]]] = {
-    checkNotNull(tweets)
-    checkNotNull(csvTweets)
 
     val orderedDates = getAllActionsOrderedByDate(tweets, csvTweets)
 
@@ -42,8 +43,6 @@ trait DatesUtil extends ValidationsUtil {
    * @return a date object with day and hour from param values. Minutes and seconds set to 0.
    */
   def buildDate(dayOfWeek: Int, hourOfDay: Int): Date = {
-    checkNotNull(dayOfWeek)
-    checkNotNull(hourOfDay)
     checkValue(dayOfWeek, max = maxDayValue)
     checkValue(hourOfDay, max = maxHourValue)
 
@@ -69,13 +68,12 @@ trait DatesUtil extends ValidationsUtil {
    * @return Boolean object if now date is after generated date. If not, it waits until that happens.
    */
   def waitForDate(dateToWaitFor: Date, nowDate: Date): Boolean = {
-    checkNotNull(dateToWaitFor)
-    checkNotNull(nowDate)
-
     if (nowDate.after(dateToWaitFor)) {
       true
     }
     else {
+      try { Thread.sleep(oneMinuteInMillis/2) }
+      catch { case e: InterruptedException => e.printStackTrace() }
       waitForDate(dateToWaitFor, new Date())
     }
   }
@@ -94,8 +92,6 @@ trait DatesUtil extends ValidationsUtil {
    * @return Int. Value of the day of week contained in the calendar object.
    */
   def getCalendarDay(calendar: Calendar): Int = {
-    checkNotNull(calendar)
-
     calendar.get(Calendar.DAY_OF_WEEK)
   }
 
@@ -105,8 +101,6 @@ trait DatesUtil extends ValidationsUtil {
    * @return Int. Value of the hour of the day contained in the calendar object.
    */
   def getCalendarHour(calendar: Calendar): Int = {
-    checkNotNull(calendar)
-
     calendar.get(Calendar.HOUR_OF_DAY)
   }
 
@@ -116,7 +110,6 @@ trait DatesUtil extends ValidationsUtil {
    * @return SimpleDateFormat. The simple date format built with the given pattern.
    */
   def getSimpleDateFormat(pattern: String): SimpleDateFormat = {
-    checkNotNull(pattern)
     checkNotEmptyString(pattern)
 
     new SimpleDateFormat(pattern)
@@ -127,12 +120,10 @@ trait DatesUtil extends ValidationsUtil {
    * @param date. Date from which the first day of month will be obtained.
    * @return Date. Date object containing the first day of the month of the parameter date.
    */
-  def getFirstDayOfMonth(date: Date): Date = {
-    checkNotNull(date)
-
+  def getFirstDayOfMonthDate(date: Date): Date = {
     val calendar = getCalendarInstance
     calendar.setTime(date)
-    calendar.set(Calendar.DAY_OF_MONTH, 1)
+    calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMinimum(Calendar.DAY_OF_MONTH))
     calendar.set(Calendar.HOUR_OF_DAY, 0)
     calendar.set(Calendar.MINUTE, 0)
     calendar.set(Calendar.SECOND, 0)

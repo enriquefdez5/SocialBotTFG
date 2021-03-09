@@ -114,6 +114,20 @@
             <version>4.5</version>
         </dependency>
 
+
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_2.13</artifactId>
+            <version>3.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.13</artifactId>
+            <version>3.2.5</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!-- local jar added to local m2 -->
         <dependency>
             <groupId>me.jhenrique</groupId>
@@ -123,6 +137,11 @@
 
     </dependencies>
     <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/scala</directory>
+            </testResource>
+        </testResources>
         <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
             <plugin>
@@ -166,7 +185,7 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-    </build>
+                    </plugins>
+                </build>
 
-</project>
+            </project>

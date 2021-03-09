@@ -23,17 +23,16 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return a Seq[Post] that is the result of the transformation.
    */
   def statusesToPosts(tweets: Seq[Status]): Seq[Post] = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
+    checkNotEmptySeq(tweets)
 
     val calendar = getCalendarInstance
     tweets.map(it => {
       calendar.setTime(it.getCreatedAt)
       if (it.getRetweetedStatus != null) {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getRetweetedStatus.getUser.getId, 0)
+        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getRetweetedStatus.getUser.getId, -1)
       }
       else {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, 0, it.getInReplyToStatusId)
+        Post(it.getText, calendar.getTime, it.getRetweetedStatus, -1, it.getInReplyToStatusId)
       }
     })
   }
@@ -42,21 +41,23 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * Function that recovers the last tweet not retweeted from a list of tweets.
    * @param tweets, Seq[Status]. A sequence of actions collected from the Twitter API.
    * @param idx, Int. Index to iterate over the list and find the last tweet not retweeted.
-   * @return a Status. The last tweet not retweeded from the list.
+   * @return a Status. The last tweet not retweeded from the list or the last tweet of the list
    */
   @tailrec
-  // TODO changed ResponseList[Status] to Seq[Status]. Check if it works
   def getLastTweetNotRetweeted(tweets: Seq[Status], idx: Int): Status = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-    checkNotNull(idx)
+    checkNotEmptySeq(tweets)
     checkNotNegativeInt(idx)
 
-    if (tweets(idx).isRetweet) {
-      getLastTweetNotRetweeted(tweets, idx + 1)
+    if (idx < tweets.length) {
+      if (tweets(idx).isRetweet) {
+        getLastTweetNotRetweeted(tweets, idx + 1)
+      }
+      else {
+        tweets(idx)
+      }
     }
     else {
-      tweets(idx)
+      null
     }
   }
 
@@ -67,18 +68,20 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return a Status. The last tweet not replied from the list.
    */
   @tailrec
-  // TODO changed ResponseList[Status] to Seq[Status]. Check if it works
   def getLastTweetNotReplied(tweets: Seq[Status], idx: Int): Status = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-    checkNotNull(idx)
+    checkNotEmptySeq(tweets)
     checkNotNegativeInt(idx)
 
-    if (tweets(idx).getInReplyToStatusId != 0) {  // TODO check if is != 0 or null or nan...
-      getLastTweetNotReplied(tweets, idx + 1)
+    if (idx < tweets.length) {
+      if (tweets(idx).getInReplyToStatusId != -1) {
+        getLastTweetNotReplied(tweets, idx + 1)
+      }
+      else {
+        tweets(idx)
+      }
     }
     else {
-      tweets(idx)
+      null
     }
   }
 
@@ -89,8 +92,7 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Long, an identifier of the most retweeted user.
    */
   def obtainMostRetweetedUserId(tweets: Seq[Post]): Long = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
+    checkNotEmptySeq(tweets)
 
     // Filter rts
     val onlyRts = tweets.filter(it => {
@@ -98,12 +100,15 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     })
 
     // Group by user id
-    val onlyRetweetedGroupedByUserId = onlyRts.groupBy(it => {
-      it.retweetedStatusUserId
-    })
+    if (onlyRts.nonEmpty) {
+      val onlyRetweetedGroupedByUserId = onlyRts.groupBy(it => {
+        it.retweetedStatusUserId
+      })
 
-    // Find most retweeted one
-    getMostInteractedUser(onlyRetweetedGroupedByUserId)
+      // Find most retweeted one
+      getMostInteractedUser(onlyRetweetedGroupedByUserId)
+    }
+    else { -1 }
   }
 
   /**
@@ -113,22 +118,23 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Long, an identifier of the most replied user.
    */
   def obtainMostRepliedUserId(tweets: Seq[Post]): Long = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-
+    checkNotEmptySeq(tweets)
 
     // Filter replies
     val onlyReplied = tweets.filter(it => {
       isReplied(it.getInReplyToUserId)
     })
 
-    // Group by user id
-    val onlyRepliedGroupedByUserId = onlyReplied.groupBy(it => {
-      it.getInReplyToUserId
-    })
+    if (onlyReplied.nonEmpty) {
+      // Group by user id
+      val onlyRepliedGroupedByUserId = onlyReplied.groupBy(it => {
+        it.getInReplyToUserId
+      })
 
-    // Find most replied user id
-    getMostInteractedUser(onlyRepliedGroupedByUserId)
+      // Find most replied user id
+      getMostInteractedUser(onlyRepliedGroupedByUserId)
+    }
+    else { -1 }
   }
 
   /**
@@ -140,8 +146,6 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    *         identifier.
    */
   def getMostInteractedUser(groupedTweets: Map[Long, Seq[Post]]): Long = {
-    checkNotNull(groupedTweets)
-
     val maxSize: Int = 0
     val mostInteractedUser: Long = 0
     val idx = 0
@@ -162,14 +166,9 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
   @tailrec
   private def getMostInteractedUserLoop(groupedTweets: Map[Long, Seq[Post]], maxSize: Int, mostInteractedUserId: Long,
                                         keys: List[Long], idx: Int): Long = {
-    checkNotNull(groupedTweets)
-    checkNotNull(maxSize)
     checkNotNegativeInt(maxSize)
-    checkNotNull(mostInteractedUserId)
     checkNotNegativeLong(mostInteractedUserId)
-    checkNotNull(keys)
-    checkNotEmptyList(keys)
-    checkNotNull(idx)
+    checkNotEmptySeq(keys)
     checkNotNegativeInt(idx)
 
     if (idx < keys.length) {
@@ -191,18 +190,15 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * historical composed by tweets and replies. It does not contain retweets.
    * @return Int. The computed maximum number of followed post actions.
    */
-  def obtainMaxFollowedPostActions(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-    checkNotNull(csvTweets)
-    checkNotEmptyList(csvTweets)
+  def obtainPostActionsProportion(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+    checkNotEmptySeq(tweets)
+    checkNotEmptySeq(csvTweets)
 
     val orderedDates: Seq[String] = getAllActionsOrderedByDate(tweets, csvTweets)
     val actions: Seq[String] = orderedDates.map(it => {
-      it.split(csvSeparator)(1)
+      it.split(csvSeparator)(2)
     })
-    val postProportion: Double = getPostProportion(actions)
-    (postProportion*10).toInt
+    getPostProportion(actions)
   }
 
   /**
@@ -210,9 +206,8 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @param actions, Seq[String]. Actions as String made of a date and a type of action.
    * @return Double. It is the post proportion in all the given actions.
    */
-  private def getPostProportion(actions: Seq[String]): Double = {
-    checkNotNull(actions)
-    checkNotEmptyList(actions)
+  private def getPostProportion(actions: Seq[String]): Int = {
+    checkNotEmptySeq(actions)
 
     val postCount: Int = 0
     val totalCount: Int = 0
@@ -225,31 +220,32 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @param actions, Seq[String]. Sequence of actions represented as strings containing date and type of action
    * separated by ','.
    * @param postCount, Int. Count of post actions at every step of the loop.
-   * @param totalCount, Int. Count of total actinos at every step of the loop.
+   * @param maxCount, Int. Count of total actions at every step of the loop.
    * @param idx, Int. Index to iterate over the actions sequence and to know when to stops the loop.
    * @return Double. The proportion value of post actions over all the given actions.
    */
   @tailrec
-  private def getPostProportionLoop(actions: Seq[String], postCount: Int, totalCount: Int, idx: Int): Double = {
-    checkNotNull(actions)
-    checkNotEmptyList(actions)
-    checkNotNull(postCount)
+  private def getPostProportionLoop(actions: Seq[String], postCount: Int, maxCount: Int, idx: Int): Int = {
+    checkNotEmptySeq(actions)
     checkNotNegativeInt(postCount)
-    checkNotNull(totalCount)
-    checkNotNegativeInt(totalCount)
-    checkNotNull(idx)
+    checkNotNegativeInt(maxCount)
     checkNotNegativeInt(idx)
 
     if (idx < actions.length) {
       if (actions.get(idx) == "1") {
-        getPostProportionLoop(actions, postCount + 1, totalCount + 1, idx + 1)
+        if (postCount >= maxCount){
+          getPostProportionLoop(actions, postCount + 1, postCount + 1, idx + 1)
+        }
+        else {
+          getPostProportionLoop(actions, postCount + 1, maxCount, idx + 1)
+        }
       }
       else {
-        getPostProportionLoop(actions, postCount, totalCount + 1, idx + 1)
+        getPostProportionLoop(actions, 0, maxCount, idx + 1)
       }
     }
     else {
-      postCount / totalCount
+      maxCount
     }
   }
 
@@ -262,10 +258,8 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Int. Returns the maximum number of actions per hour found.
    */
   def obtainMaxActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-    checkNotNull(csvTweets)
-    checkNotEmptyList(csvTweets)
+    checkNotEmptySeq(tweets)
+    checkNotEmptySeq(csvTweets)
 
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMaxNumberOfActions(dayOfYearAndHourMap)
@@ -276,7 +270,7 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * Function that obtains the maximum number of actions from a list of actions grouped by day of year and by hour.
    * @param dayOfYearAndHourMap, Iterable[Map[Int, Seq[String] ] ]. List of actions grouped by day of year and then by
    * hour.
-   * @return Int. Returns the maximum number of actions per hour.
+   * @return Int. Returns the maximum number of actions in an hour.
    */
   private def obtainMaxNumberOfActions(dayOfYearAndHourMap: Iterable[Map[Int, Seq[String]]]): Int = {
     var maxGroupLength: Int = 0
@@ -300,10 +294,8 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Int. Returns the mean actions per hour.
    */
   def obtainMeanActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
-    checkNotNull(csvTweets)
-    checkNotEmptyList(csvTweets)
+    checkNotEmptySeq(tweets)
+    checkNotEmptySeq(csvTweets)
 
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMean(dayOfYearAndHourMap)
@@ -336,15 +328,14 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @return Seq[String]. Converted sequence of tweets into seq of strings composed by dates.
    */
-  def obtainRtsDates(tweets: Seq[Post]): Seq[String] = {
-    checkNotNull(tweets)
-    checkNotEmptyList(tweets)
+  def obtainRtsInfo(tweets: Seq[Post]): Seq[String] = {
+    checkNotEmptySeq(tweets)
 
     val onlyRTs = tweets.filter(tweet => {
       isRetweet(tweet.retweetedStatus)
     })
     onlyRTs.map(tweet => {
-      tweet.createdAt.toString
+      tweet.createdAt.toString + csvSeparator + tweet.retweetedStatusUserId + csvSeparator + "3"
     })
   }
 
@@ -353,8 +344,8 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @param retweetStatus, Status. Status to check if it is a retweet action or not
    * @return Boolean. True if it a Retweet action and false if it is not.
    */
-  private def isRetweet(retweetStatus: Status): Boolean = {
-    retweetStatus == null
+  private def isRetweet(retweetStatus: Status, rtUserId: Long = 0): Boolean = {
+    retweetStatus != null && rtUserId != -1
   }
 
   /**
@@ -363,9 +354,6 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Boolean. True if it is a reply action and false if it is not.
    */
   private def isReplied(replyId: Long): Boolean = {
-    checkNotNull(replyId)
-    checkNotNegativeLong(replyId)
-
     replyId != -1
   }
 }

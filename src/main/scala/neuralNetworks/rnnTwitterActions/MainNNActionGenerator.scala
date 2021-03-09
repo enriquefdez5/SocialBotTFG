@@ -5,14 +5,13 @@ import java.util
 import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
 
-import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
 import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.scala.Logging
-import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
 import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator
 import org.deeplearning4j.earlystopping.termination.{MaxEpochsTerminationCondition, MaxTimeIterationTerminationCondition}
 import org.deeplearning4j.earlystopping.trainer.EarlyStoppingTrainer
+import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{BackpropType, MultiLayerConfiguration, NeuralNetConfiguration}
@@ -25,6 +24,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
 import utilities.properties.PropertiesReaderUtil
 
 import scala.annotation.tailrec

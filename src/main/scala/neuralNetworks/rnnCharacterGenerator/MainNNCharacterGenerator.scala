@@ -59,7 +59,7 @@ object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
   }
 
   private def saveNetwork(net: MultiLayerNetwork): Unit = {
-    val locationToSave = new File("models/nnActions.zip")
+    val locationToSave = new File(getProperties.getProperty("textNNPath"))
     net.save(locationToSave, true)
   }
 
@@ -204,7 +204,7 @@ object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
   }
 
   private def getCharacter(initialization: String): String = {
-    if (initialization == null) {
+    if (initialization == null || initialization == "") {
       "a"
     }
     else {
@@ -239,8 +239,7 @@ object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
   }
 
   private def getInitializationInput(iter: CharacterGeneratorIterator, ownInitialization: String): INDArray = {
-    val initializationToReturn: INDArray = Nd4j.zeros(1, iter.inputColumns(), ownInitialization
-      .length)
+    val initializationToReturn: INDArray = Nd4j.zeros(1, iter.inputColumns(), ownInitialization.length)
     val init: Array[Char] = ownInitialization.toCharArray
     val idx = 0
     addCharToArray(init, idx, iter, initializationToReturn)

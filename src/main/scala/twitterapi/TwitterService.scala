@@ -3,6 +3,7 @@ package twitterapi
 // util libs
 import java.util
 
+import twitterapi.TwitterServiceOperations.obtainRtsInfo
 import utilities.properties.PropertiesReaderUtil
 import utilities.validations.ValidationsUtil
 
@@ -10,19 +11,19 @@ import utilities.validations.ValidationsUtil
 import org.apache.logging.log4j.scala.Logging
 
 // scala libs
-import scala.collection.JavaConversions._
 import scala.annotation.tailrec
+import scala.collection.JavaConversions._
 
 // app model
 import model.Post
 
 // twitter4j libs
-import twitter4j.{Paging, Status, StatusUpdate, TwitterFactory, Twitter}
 import twitter4j.conf.ConfigurationBuilder
+import twitter4j.{Paging, Status, StatusUpdate, Twitter, TwitterFactory}
 
 // app imports
+import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, statusesToPosts}
 import utilities.ConfigRun
-import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainRtsDates, statusesToPosts}
 import utilities.dates.DatesUtil
 
 
@@ -37,7 +38,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @return Seq[Post]. Seq of Post containing the last five tweets the user posted.
    */
   def getLastFiveTweets(conf: ConfigRun, userName: String): Seq[Post] = {
-    checkNotNull(userName)
     checkNotEmptyString(userName)
     val pageInit = 1
     val pageSize = 5
@@ -56,7 +56,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * Post objects.
    */
   def getTweets(conf: ConfigRun, userName: String): Seq[Post] = {
-    checkNotNull(userName)
     checkNotEmptyString(userName)
     val pageInit = 1
     // Obtain twitter client
@@ -75,10 +74,7 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    */
   @tailrec
   private def gatherTweets(twitter: Twitter, pageInit: Int, userName: String, tweets: Seq[Status]): Seq[Status] = {
-    checkNotNull(twitter)
-    checkNotNull(pageInit)
     checkNotNegativeInt(pageInit)
-    checkNotNull(userName)
     checkNotEmptyString(userName)
 
     if (tweets.size < getProperties.getProperty("maxNumberTweetsAllowed").toInt) {
@@ -88,7 +84,7 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       gatherTweets(twitter, pageInit + 1, userName, tweets ++ newTweets)
     }
     else {
-      checkNotEmptyList(tweets)
+      checkNotEmptySeq(tweets)
       tweets
     }
   }
@@ -104,10 +100,8 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       .setOAuthConsumerSecret(conf.consumerTokenKeySecret())
       .setOAuthAccessToken(conf.accessTokenKey())
       .setOAuthAccessTokenSecret(conf.accessTokenKeySecret())
-    val tf = new TwitterFactory(cb.build)
-    val twitter = tf.getInstance
-    twitter
-  }
+    new TwitterFactory(cb.build).getInstance()
+      }
 
   /**
    * Function that post a tweet on twitter.
@@ -115,7 +109,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @param conf, ConfigRun. Param needed to connect to the Twitter API.
    */
   def postTweet(tweet: String, conf: ConfigRun): Unit = {
-    checkNotNull(tweet)
     checkNotEmptyString(tweet)
 
     val twitter = getTwitterClient(conf)
@@ -128,7 +121,7 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @param conf, ConfigRun. Param needed to connect to the Twitter API.
    */
   def rtTweet(tweetId: Long, conf: ConfigRun): Unit = {
-    checkNotNull(tweetId)
+
     checkNotNegativeLong(tweetId)
 
     val twitter = getTwitterClient(conf)
@@ -144,11 +137,8 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @param conf, ConfigRun. Param needed to connect to the Twitter API.
    */
   def replyTweet(tweetText: String, mostRepliedUserId: Long, replyTweetId: Long, conf: ConfigRun ): Unit = {
-    checkNotNull(tweetText)
     checkNotEmptyString(tweetText)
-    checkNotNull(mostRepliedUserId)
     checkNotNegativeLong(mostRepliedUserId)
-    checkNotNull(replyTweetId)
     checkNotNegativeLong(replyTweetId)
 
     val twitter = getTwitterClient(conf)
@@ -168,7 +158,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @return Long. The tweet id to be retweeted.
    */
   def obtainTweetToRt(mostRetweetedUserId: Long, conf: ConfigRun): Long = {
-    checkNotNull(mostRetweetedUserId)
     checkNotNegativeLong(mostRetweetedUserId)
 
     val twitter = getTwitterClient(conf)
@@ -183,7 +172,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
    * @return Long. The tweet id to be replied.
    */
   def obtainTweetToReply(mostRepliedUserId: Long, conf: ConfigRun): Long = {
-    checkNotNull(mostRepliedUserId)
     checkNotNegativeLong(mostRepliedUserId)
 
     val twitter = getTwitterClient(conf)
@@ -192,10 +180,8 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
   }
 
   def getAllActionsOrderedByDate(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Seq[String] = {
-    checkNotNull(tweets)
-    checkNotNull(csvTweets)
-    checkNotEmptyList(tweets)
-    checkNotEmptyList(csvTweets)
+    checkNotEmptySeq(tweets)
+    checkNotEmptySeq(csvTweets)
 
     // Pattern for csv file dates
     val csvPattern = "yyyy-MM-dd HH:mm:ss"
@@ -209,18 +195,13 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
 
     // Get time from tweets read in csv file
     val csvDates = csvTweets.map(tweet => {
-      logger.debug(tweet)
       val split = tweet.split(csvSeparator)
       calendar.setTime(simpleDateFormatCSV.parse(split(0)))
       calendar.getTime.toString + csvSeparator + split(2)
     })
 
     // Filter rts from tweets collected from twitter api
-    val rts = obtainRtsDates(tweets)
-    // Get date from those rts
-    val rtsDates: Seq[String] = rts.map(rt => {
-      rt + ",3"
-    })
+    val rts = obtainRtsInfo(tweets)
 
     // Create new dates seq item with all csv dates
     val dates = csvDates.map( csvDate => {
@@ -233,7 +214,7 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
     })
 
     // Add rt dates into dates seq item.
-    rtsDates.foreach(rt => {
+    rts.foreach(rt => {
       dates.add(rt)
     })
 
@@ -244,7 +225,8 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       calendarToOrder.setTime(simpleDateFormatAPI.parse(stringToDate))
       calendarToOrder.getTime
     })
-    orderedDates.map(_ + "\n")
+//    orderedDates.map(_ + "\n")
+    orderedDates
   }
 
   /**

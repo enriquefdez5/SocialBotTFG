@@ -11,15 +11,15 @@ trait FileWriterUtil extends Logging with PropertiesReaderUtil {
 
   /**
    * This function write a Seq of Strings into a file.
-   * @param posts The text that should be written on the file
+   * @param data The text that should be written on the file
    * @param fileName. The file where the text should be written. By default it writes on the RNN datasetTexto.txt file
    *                that later will be use to train the RNN
    */
-  def writeDataOnAFile(posts: Seq[String], fileName: String = getProperties.getProperty("dataSetFileName")): Unit = {
+  def writeDataOnAFile(data: Seq[String], fileName: String = getProperties.getProperty("dataSetFileName")): Unit = {
     val bw = getBufferedWriter(fileName)
     try {
-      posts.foreach{ post =>
-        bw.write(post)
+      data.foreach{ line =>
+        bw.write(line)
       }
     }
     catch {
@@ -39,14 +39,8 @@ trait FileWriterUtil extends Logging with PropertiesReaderUtil {
    */
   private def writeScores(scores: util.ArrayList[String], fileName: String): Unit = {
     val bw = getBufferedWriter(fileName)
-    try {
-      for ( i <- 0 until scores.size()) {
-        bw.write(scores.get(i))
-      }
-    }
-    catch {
-      case ioexc: IOException =>
-        logger.error("Ups! Something went wrong writing on the file", ioexc)
+    for ( i <- 0 until scores.size()) {
+      bw.write(scores.get(i))
     }
     // Closing the buffer
     bw.close()

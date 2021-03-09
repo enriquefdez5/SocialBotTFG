@@ -105,6 +105,7 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
 
 
   override def next(num: Int): DataSet = {
+    checkNotNegativeInt(num)
     checkNotEmptyLinkedList(exampleStartOffsets)
     val currMiniBatchSize = Math.min(num, exampleStartOffsets.size())
     // Allocate space:

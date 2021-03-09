@@ -1,5 +1,6 @@
 package model
 
+import model.TypeAndDate.{maxActionValue, minActionValue}
 import utilities.validations.ValidationsUtil
 
 /**

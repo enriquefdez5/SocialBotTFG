@@ -2,31 +2,27 @@ package utilities.validations
 
 import model.Action
 import model.Action.{Action, getPossibleActions}
-import model.exceptions.{EmptyStringException, IncorrectSizeListException, InvalidActionException, NullParamException, WrongParamValueException}
+import model.exceptions._
 import org.apache.logging.log4j.scala.Logging
 
 trait ValidationsUtil extends Logging {
 
-  val maxDayValue = 6
-  val maxHourValue = 23
-  val minActionValue = 1
-  val maxActionValue = 3
-
 
   def checkActionValue(action: Action): Unit = {
-    val isValid: Boolean = isAValidAction(action, getPossibleActions)
-    if ( !isValid) {
+    val isValid: Boolean = isAValidAction(action, getPossibleActions.toList)
+    if ( !isValid ) {
       throw InvalidActionException("The given action is not valid or implemented yet")
     }
   }
 
-  private def isAValidAction(action: Action, possibleActionValues: Action.ValueSet): Boolean = {
+  private def isAValidAction(action: Action, possibleActionValues: List[Action.Value]): Boolean = {
+    var isValid: Boolean = false
     possibleActionValues.foreach(possibleAction => {
-      if (possibleAction == action) {
-        true
+      if (possibleAction.compare(action) == 0) {
+        isValid = true
       }
     })
-    false
+    isValid
   }
 
   def checkValue(value: Int, min: Int = 0, max: Int): Unit = {
@@ -46,8 +42,8 @@ trait ValidationsUtil extends Logging {
   }
 
   def checkNotNull(item: Any): Unit = {
-    if (item == null) {
-      throw NullParamException("Param can not be null")
+    if (item == None) {
+      throw NoneParamException("Param can not be None")
     }
   }
 
@@ -57,8 +53,8 @@ trait ValidationsUtil extends Logging {
     }
   }
 
-  def checkNotEmptyList(list: Seq[Any]): Unit = {
-    if (list.isEmpty) {
+  def checkNotEmptySeq(seq: Seq[Any]): Unit = {
+    if (seq.isEmpty) {
       throw IncorrectSizeListException("List can not be empty")
     }
   }

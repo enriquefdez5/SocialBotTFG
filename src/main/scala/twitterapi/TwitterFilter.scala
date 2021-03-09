@@ -13,7 +13,7 @@ object TwitterFilter extends Logging with ValidationsUtil{
    * @return Seq[String]. Filtered tweets.
    */
   def cleanTweets(tweets: Seq[String], language: Boolean): Seq[String] = {
-    checkNotEmptyList(tweets)
+    checkNotEmptySeq(tweets)
     val commonFilteredTweets = commonClean(tweets)
     if (language) spanishFilter(commonFilteredTweets) else englishFilter(commonFilteredTweets)
   }
@@ -46,11 +46,11 @@ object TwitterFilter extends Logging with ValidationsUtil{
     normalFilteredTweets
       .map{ _.replaceAll(" u ", " you ")}
       .map{ _.replaceAll(" ty ", " thank you ")}
-      .map{ _.replaceAll( " ASAP ", " as soon as possible ")}
+      .map{ _.replaceAll( " asap ", " as soon as possible ")}
   }
 
   def markTweets(tweets: Seq[String]): Seq[String] = {
-    checkNotEmptyList(tweets)
+    checkNotEmptySeq(tweets)
     // Adding line break after each tweet
     tweets.map{tweet => s"$tweet\n"}
   }

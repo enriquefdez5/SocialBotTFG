@@ -5,12 +5,13 @@ import java.util
 import model.TypeAndDate
 import model.TypeAndDate.postToTypeAndDate
 import org.apache.logging.log4j.scala.Logging
-import twitterapi.TwitterService.getTweets
-import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMaxFollowedPostActions, obtainMeanActionsPerHour}
+import twitterapi.TwitterService.{getLastFiveTweets, getTweets}
+import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainPostActionsProportion}
 import utilities.ConfigRun
 import utilities.dates.DatesUtil
 import utilities.fileManagement.FileReaderUtil
 import utilities.neuralNetworks.NeuralNetworkUtils
+
 import scala.annotation.tailrec
 
 object MainActionExecution extends Logging with FileReaderUtil with NeuralNetworkUtils with DatesUtil {
@@ -37,7 +38,7 @@ object MainActionExecution extends Logging with FileReaderUtil with NeuralNetwor
     val maxActionsPerHour: Int = obtainMaxActionsPerHour(tweets, csvTweets)
 
     // Post
-    val maxFollowedPostActions: Int = obtainMaxFollowedPostActions(tweets, csvTweets)
+    val maxFollowedPostActions: Int = obtainPostActionsProportion(tweets, csvTweets)
 
     // Get last type and date action from twitter api
     val lastTypeAndDateAction: TypeAndDate = postToTypeAndDate(tweets.head)
@@ -58,7 +59,9 @@ object MainActionExecution extends Logging with FileReaderUtil with NeuralNetwor
                    sameHourCount: Int, maxActionsPerHour: Int,
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
-      val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions, conf)
+      val lastFiveTweetsForNextAction = getLastFiveTweets(conf, getProperties.getProperty("twitterUsername"))
+      val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions,
+        lastFiveTweetsForNextAction)
       val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
       // Action at same hour

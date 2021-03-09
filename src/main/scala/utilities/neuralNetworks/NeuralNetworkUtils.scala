@@ -4,21 +4,21 @@ import java.io.{File, FileInputStream}
 import java.util.Random
 
 import model.TypeAndDate.{buildTypeAndDateFromDayHourAndAction, postToTypeAndDate}
+import model.exceptions.NotExistingFileException
 import model.{Post, TypeAndDate}
+import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
+import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
 import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
-import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
-import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
-import twitterapi.TwitterService.getLastFiveTweets
-import utilities.ConfigRun
 import utilities.properties.PropertiesReaderUtil
+import utilities.validations.ValidationsUtil
 
 import scala.annotation.tailrec
 
-trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
+trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil with ValidationsUtil{
 
 
   /**
@@ -27,13 +27,14 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * @return the generated text as String
    */
   def prepareText(nCharactersToSample: Int): String = {
+    checkNotNegativeInt(nCharactersToSample)
     val initializationString: String = getNoInitializationString
     val rng = new Random()
     val miniBatchSize = getProperties.getProperty("trainingMiniBatchSize").toInt
     val exampleLength = getProperties.getProperty("trainingExampleLength").toInt
     val iter: CharacterGeneratorIterator = getCharacterIterator(miniBatchSize, exampleLength, rng)
     val postNCharactersToSample = nCharactersToSample
-    val textNN = loadNetwork("./models/bestIbai52epochs.zip")
+    val textNN = loadNetwork(getProperties.getProperty("textNNPath"))
     sampleCharactersFromNetwork(initializationString, textNN, iter,
       rng, postNCharactersToSample)
   }
@@ -46,7 +47,7 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * @return CharacterIterator object needed to sample characters.
    */
   private def getCharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random): CharacterGeneratorIterator = {
-    val data = IOUtils.toString(new FileInputStream("datasetTexto.txt"), "UTF-8")
+    val data = IOUtils.toString(new FileInputStream(getProperties.getProperty("dataSetFileName")), "UTF-8")
     new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data)
   }
 
@@ -57,6 +58,9 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    */
   def loadNetwork(name: String): MultiLayerNetwork = {
     val textNetworkLocation = new File(name)
+    if (!textNetworkLocation.exists()) {
+      throw NotExistingFileException("File " + name + " does not exist")
+    }
     MultiLayerNetwork.load(textNetworkLocation, false)
   }
 
@@ -64,14 +68,18 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * Function that generates next type and date action.
    * @param followedPostActionsCount, Int. Count of followed post actions.
    * @param maxFollowedPostActions, Int. Number of maximum followed post actions.
-   * @param conf, ConfigRun. Param needed to connect to the Twitter API.
+   * @param tweets, Seq[Post]. Last five tweets gathered from the active user.
    * @return TypeAndDate. TypeAndDate object with the generated action type and execution date.
    */
-  def generateNextAction(followedPostActionsCount: Int, maxFollowedPostActions: Int, conf: ConfigRun): TypeAndDate = {
+  def generateNextAction(followedPostActionsCount: Int, maxFollowedPostActions: Int, tweets: Seq[Post]): TypeAndDate = {
     // Get last tweet
-    val tweets = getLastFiveTweets(conf, getProperties.getProperty("twitterUsername"))
+    checkNotNegativeInt(followedPostActionsCount)
+    checkNotNegativeInt(maxFollowedPostActions)
+    checkNotEmptySeq(tweets)
     val inputArray = getNNInputArrayFromTweets(tweets)
+
     generateNextTypeAndDateAction(followedPostActionsCount, maxFollowedPostActions, inputArray)
+
   }
 
   /**
@@ -91,8 +99,14 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
     // Compose typeAndDate object with output
     val day = getOutputDay(output.getDouble(0.toLong))
     val hour = getOutputHour(output.getDouble(1.toLong))
-    val action = getOutputAction(output.getDouble(2.toLong))
+    val action = getActionValue(getOutputAction(output.getDouble(2.toLong)))
     buildTypeAndDateFromDayHourAndAction(day, hour, action, followedPostActionsCount, maxFollowedPostActions)
+  }
+  private def getActionValue(value : Long): Int = {
+    if (value < 1) {
+      1
+    }
+    else { value.toInt }
   }
 
   /**
@@ -101,10 +115,7 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * @return an Integer value that represents the day of the week in which the action will be executed.
    */
   def getOutputDay(outputDay: Double): Int = {
-    logger.debug("Output Day")
-    logger.debug(outputDay.toString)
-    logger.debug((outputDay*7).toString)
-    logger.debug((outputDay*7).toInt.toString)
+    checkNotNegativeLong(outputDay.toLong)
     (outputDay*7).toInt
   }
 
@@ -114,6 +125,7 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * @return an Integer value that represents the hour of the day in which the action will be executed.
    */
   def getOutputHour(outputHour: Double): Int = {
+    checkNotNegativeLong(outputHour.toLong)
     (outputHour*23).toInt
   }
 
@@ -123,6 +135,7 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
    * @return an Integer value that represents the chosen action that will be executed.
    */
   def getOutputAction(outputAction: Double): Int = {
+    checkNotNegativeLong(outputAction.toLong)
     (outputAction*3).toInt
   }
 
@@ -153,7 +166,7 @@ trait NeuralNetworkUtils extends Logging with PropertiesReaderUtil {
   private def getNNInputArrayFromTweetsLoop(tweets: Seq[Post], inputArray: INDArray, idx: Int): INDArray = {
     if (idx < tweets.length) {
       addInputToArray(inputArray, tweets(idx), idx)
-      getNNInputArrayFromTweetsLoop(tweets, inputArray, idx)
+      getNNInputArrayFromTweetsLoop(tweets, inputArray, idx + 1)
     }
     else { inputArray }
   }

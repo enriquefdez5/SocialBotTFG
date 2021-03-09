@@ -9,17 +9,19 @@ import org.apache.logging.log4j.scala.Logging
 trait PropertiesReaderUtil extends Logging {
 
   private val properties: Properties = new Properties()
+  private val propertiesPath: String = "src/main/resources/config.properties"
+
 
   def getProperties: Properties = {
     if (properties.isEmpty) {
-      properties.load(new FileInputStream("src/main/resources/config.properties"))
+      properties.load(new FileInputStream(propertiesPath))
     }
     properties
   }
 
   def saveProperties(): Unit = {
     try {
-      val out: OutputStreamWriter = new OutputStreamWriter(new FileOutputStream("src/main/resources/config.properties"),
+      val out: OutputStreamWriter = new OutputStreamWriter(new FileOutputStream(propertiesPath),
         StandardCharsets.UTF_8)
       properties.store(out, "Updated properties file")
     }

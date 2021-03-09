@@ -2,7 +2,6 @@ package twitterapi.getOldTweets
 
 import me.jhenrique.manager.{TweetManager, TwitterCriteria}
 import me.jhenrique.model.Tweet
-
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.JavaConversions._

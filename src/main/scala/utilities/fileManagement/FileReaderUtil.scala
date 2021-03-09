@@ -1,6 +1,6 @@
 package utilities.fileManagement
 
-import java.io.{BufferedReader, File, FileReader, IOException}
+import java.io.{BufferedReader, File, FileReader}
 import java.util
 
 import org.apache.logging.log4j.scala.Logging
@@ -14,13 +14,7 @@ trait FileReaderUtil extends Logging with PropertiesReaderUtil {
     val file = new File(fileName)
     val br = new BufferedReader(new FileReader(file))
     val result = new util.ArrayList[String]()
-    try{
-      addCSVData(result, br, br.readLine)
-    }
-    catch {
-      case ioexc: IOException =>
-        logger.error("Ups! Something went wrong reading from the file", ioexc)
-    }
+    addCSVData(result, br, br.readLine)
     br.close()
     result
   }

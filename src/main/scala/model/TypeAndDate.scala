@@ -7,9 +7,8 @@ import model.exceptions.IncorrectCommandActionException
 import utilities.validations.ValidationsUtil
 
 // Command imports
-import twitterapi.commandActions.{PostCommand, RtCommand, ReplyCommand, ActionCommand}
-
 import model.Action.{POST, REPLY, RT, getActionFromIntValue}
+import twitterapi.commandActions.{ActionCommand, PostCommand, ReplyCommand, RtCommand}
 
 
 // model imports
@@ -35,6 +34,14 @@ case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: ActionCommand)
 
 object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
 
+  val maxDayValue = 6
+  val maxHourValue = 23
+  val minDayValue = 0
+  val minHourValue = 0
+  val maxActionValue = 3
+  val minActionValue = 1
+
+
   /**
    * Function that builds a TypeAndDate object from a given day, hour and action and considering followed post actions
    * @param day, Int. Value of the day when the action will be executed. Must be between 0 and 6 inclusive.
@@ -47,15 +54,11 @@ object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
   def buildTypeAndDateFromDayHourAndAction(day: Int, hour: Int, actionValue: Int,
                                            followedPostActionsCount: Int, maxFollowedPostActions: Int): TypeAndDate = {
 
-    checkNotNull(hour)
     checkValue(hour, max = maxHourValue)
-    checkNotNull(day)
     checkValue(day, max = maxDayValue)
-    checkNotNull(actionValue)
+    logger.debug(actionValue.toString)
     checkValue(actionValue, minActionValue, maxActionValue)
-    checkNotNull(followedPostActionsCount)
     checkNotNegativeInt(followedPostActionsCount)
-    checkNotNull(maxFollowedPostActions)
     checkNotNegativeInt(maxFollowedPostActions)
 
     if (followedPostActionsCount >= maxFollowedPostActions) {
@@ -74,7 +77,6 @@ object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
 
 
   private def createCommandAction(action: Action): ActionCommand = {
-    checkNotNull(action)
     checkActionValue(action)
 
     action match {
@@ -106,13 +108,8 @@ object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
    * @param post, Post. Post object which be validatedto be validated
    */
   private def validatePostObject(post: Post): Unit = {
-    checkNotNull(post)
-    checkNotNull(post.getInReplyToUserId)
     checkNotNegativeLong(post.getInReplyToUserId)
-    checkNotNull(post.retweetedStatus)
-    checkNotNull(post.retweetedStatusUserId)
     checkNotNegativeLong(post.retweetedStatusUserId)
-    checkNotNull(post.createdAt)
   }
   /**
    * Function that returns an action type as an Integer based on Post received as param.
