@@ -1,4 +1,4 @@
-package test.scala.utilitiesTest.datesTest
+package utilitiesTest.datesTest
 
 import java.util
 import java.util.Calendar
@@ -6,11 +6,11 @@ import java.util.Calendar
 import model.Post
 import model.TypeAndDate.{maxDayValue, maxHourValue, minDayValue, minHourValue}
 import model.exceptions.{EmptyStringException, WrongParamValueException}
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertTrue}
 import org.junit.jupiter.api.Test
 import utilities.dates.DatesUtil
 
-object DatesUtilTest extends DatesUtil {
+class DatesUtilTest extends DatesUtil {
 
   val wrongParamValueExceptionMessage = "Param value is not valid"
   val emptyStringExceptionMessage = "The string can not be empty or blank"
@@ -25,30 +25,30 @@ object DatesUtilTest extends DatesUtil {
     try { buildDate(minDayValue-1, minHourValue) }
     catch {
       case e: WrongParamValueException =>
-        Assert.assertEquals(wrongParamValueExceptionMessage, e.msg)
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
       // Greater than 6 day of week value
     try { buildDate(maxDayValue+1, minHourValue) }
     catch {
       case e: WrongParamValueException =>
-        Assert.assertEquals(wrongParamValueExceptionMessage, e.msg)
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
     // Incorrect hour of day value
       // Negative hour of day value
     try { buildDate(minDayValue, minHourValue-1) }
     catch {
       case e: WrongParamValueException =>
-        Assert.assertEquals(wrongParamValueExceptionMessage, e.msg)
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
       // Greater than 23 hour of day value
     try { buildDate(minDayValue, maxDayValue+1) }
     catch {
       case e: WrongParamValueException =>
-        Assert.assertEquals(wrongParamValueExceptionMessage, e.msg)
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
     // Valid day of week and hour of day
     val builtDate = buildDate(0, 0)
-    Assert.assertNotNull(builtDate)
+    assertNotNull(builtDate)
   }
 
 //  @Test
@@ -74,7 +74,7 @@ object DatesUtilTest extends DatesUtil {
   @Test
   def getCalendarInstanceTest(): Unit = {
     // Check calendar instance is not null when call
-    Assert.assertNotNull(getCalendarInstance)
+    assertNotNull(getCalendarInstance)
   }
 
   @Test
@@ -83,17 +83,17 @@ object DatesUtilTest extends DatesUtil {
 
     // First day of week value
     calendar.set(Calendar.DAY_OF_WEEK, calendar.getActualMinimum(Calendar.DAY_OF_WEEK))
-    Assert.assertEquals(getCalendarDay(calendar), calendar.getActualMinimum(Calendar.DAY_OF_WEEK))
+    assertEquals(getCalendarDay(calendar), calendar.getActualMinimum(Calendar.DAY_OF_WEEK))
 
 
     // Last day of week value
     calendar.set(Calendar.DAY_OF_WEEK, calendar.getActualMaximum(Calendar.DAY_OF_WEEK))
-    Assert.assertEquals(getCalendarDay(calendar), calendar.getActualMaximum(Calendar.DAY_OF_WEEK))
+    assertEquals(getCalendarDay(calendar), calendar.getActualMaximum(Calendar.DAY_OF_WEEK))
 
 
     // One in the middle day of week value
     calendar.set(Calendar.DAY_OF_WEEK, calendar.getActualMaximum(Calendar.DAY_OF_WEEK) / 2)
-    Assert.assertTrue(
+    assertTrue(
       getCalendarDay(calendar) >= calendar.getActualMinimum(Calendar.DAY_OF_WEEK) &&
         getCalendarDay(calendar) <= calendar.getActualMaximum(Calendar.DAY_OF_WEEK))
   }
@@ -102,7 +102,7 @@ object DatesUtilTest extends DatesUtil {
   def getCalendarHourTest(): Unit = {
     val calendar = getCalendarInstance
     val hourOfDay = getCalendarHour(calendar)
-    Assert.assertTrue(hourOfDay >= minHourValue && hourOfDay <= maxHourValue)
+    assertTrue(hourOfDay >= minHourValue && hourOfDay <= maxHourValue)
   }
 
   @Test
@@ -110,14 +110,14 @@ object DatesUtilTest extends DatesUtil {
     // check pattern is the same
     val pattern = "yyyy-MM-dd HH:mm:ss"
     val sdf = getSimpleDateFormat(pattern)
-    Assert.assertEquals(sdf.toPattern, pattern)
+    assertEquals(sdf.toPattern, pattern)
 
     // check empty pattern raise exception
     val pattern2 = ""
     try { getSimpleDateFormat(pattern2) }
     catch {
       case e: EmptyStringException =>
-        Assert.assertEquals(emptyStringExceptionMessage, e.msg)
+        assertEquals(emptyStringExceptionMessage, e.msg)
     }
   }
 
@@ -134,7 +134,7 @@ object DatesUtilTest extends DatesUtil {
     val halfMonthDay = 15
 
     val oldFirstDayDate = oldFirstDayCalendar.getTime
-    Assert.assertEquals(
+    assertEquals(
       oldFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(oldFirstDayDate)
     )
@@ -142,7 +142,7 @@ object DatesUtilTest extends DatesUtil {
     val halfMonthDayDateCalendar = getCalendarInstance
     halfMonthDayDateCalendar.setTime(oldFirstDayCalendar.getTime)
     halfMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, halfMonthDay)
-    Assert.assertEquals(
+    assertEquals(
       oldFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(halfMonthDayDateCalendar.getTime)
     )
@@ -150,7 +150,7 @@ object DatesUtilTest extends DatesUtil {
     val lastMonthDayDateCalendar = getCalendarInstance
     lastMonthDayDateCalendar.setTime(oldFirstDayCalendar.getTime)
     lastMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, lastMonthDayDateCalendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-    Assert.assertEquals(
+    assertEquals(
       oldFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(lastMonthDayDateCalendar.getTime)
     )
@@ -163,7 +163,7 @@ object DatesUtilTest extends DatesUtil {
     actualFirstDayCalendar.set(Calendar.MINUTE, actualFirstDayCalendar.getActualMinimum(Calendar.MINUTE))
     actualFirstDayCalendar.set(Calendar.SECOND, actualFirstDayCalendar.getActualMinimum(Calendar.SECOND))
 
-    Assert.assertEquals(
+    assertEquals(
       actualFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(actualFirstDayCalendar.getTime)
     )
@@ -171,7 +171,7 @@ object DatesUtilTest extends DatesUtil {
     val actualHalfMonthDayDateCalendar = getCalendarInstance
     actualHalfMonthDayDateCalendar.setTime(actualFirstDayCalendar.getTime)
     actualHalfMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, halfMonthDay)
-    Assert.assertEquals(
+    assertEquals(
       actualFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(actualHalfMonthDayDateCalendar.getTime)
     )
@@ -180,7 +180,7 @@ object DatesUtilTest extends DatesUtil {
     val actualLastMonthDayDateCalendar = getCalendarInstance
     actualLastMonthDayDateCalendar.setTime(actualFirstDayCalendar.getTime)
     actualLastMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, actualLastMonthDayDateCalendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-    Assert.assertEquals(
+    assertEquals(
       actualFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(actualLastMonthDayDateCalendar.getTime)
     )
@@ -198,7 +198,7 @@ object DatesUtilTest extends DatesUtil {
     nextFirstDayCalendar.set(nextYr, nextMth, 1, nextHr, nextMin, nextScnd )
 
 
-    Assert.assertEquals(
+    assertEquals(
       nextFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(nextFirstDayCalendar.getTime)
     )
@@ -206,7 +206,7 @@ object DatesUtilTest extends DatesUtil {
     val nextHalfMonthDayDateCalendar = getCalendarInstance
     nextHalfMonthDayDateCalendar.setTime(nextFirstDayCalendar.getTime)
     nextHalfMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, halfMonthDay)
-    Assert.assertEquals(
+    assertEquals(
       nextFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(nextHalfMonthDayDateCalendar.getTime)
     )
@@ -216,7 +216,7 @@ object DatesUtilTest extends DatesUtil {
     nextLastMonthDayDateCalendar.setTime(nextFirstDayCalendar.getTime)
     nextLastMonthDayDateCalendar.set(Calendar.DAY_OF_MONTH, nextLastMonthDayDateCalendar.getActualMaximum(Calendar
       .DAY_OF_MONTH))
-    Assert.assertEquals(
+    assertEquals(
       nextFirstDayCalendar.getTime,
       getFirstDayOfMonthDate(nextLastMonthDayDateCalendar.getTime)
     )
@@ -264,6 +264,6 @@ object DatesUtilTest extends DatesUtil {
   def groupTwitterActionsByDatesTest(): Unit = {
     val grouped = groupTwitterActionsByDates(postSeq, postArrayList)
     val differentDatesPosts = 2
-    Assert.assertEquals(differentDatesPosts, grouped.size )
+    assertEquals(differentDatesPosts, grouped.size )
   }
 }

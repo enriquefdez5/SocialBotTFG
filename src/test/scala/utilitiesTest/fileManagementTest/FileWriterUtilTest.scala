@@ -1,12 +1,12 @@
-package test.scala.utilitiesTest.fileManagementTest
+package utilitiesTest.fileManagementTest
 
 import java.io.{File, FileNotFoundException}
 
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.{assertNotNull, assertTrue}
 import org.junit.jupiter.api.Test
 import utilities.fileManagement.FileWriterUtil
 
-object FileWriterUtilTest extends FileWriterUtil {
+class FileWriterUtilTest extends FileWriterUtil {
 
   @Test
   def writeDataOnAFileTest(): Unit = {
@@ -21,7 +21,7 @@ object FileWriterUtilTest extends FileWriterUtil {
 
     // Check it is okey
     val file = new File(fileRoute)
-    Assert.assertTrue(file.exists())
+    assertTrue(file.exists())
 
     // Writing data on non existing file
     val wrongFileRoute = "NonExistingFileRoute.txt"
@@ -29,7 +29,7 @@ object FileWriterUtilTest extends FileWriterUtil {
       writeDataOnAFile(data, wrongFileRoute)
     }
     catch {
-      case exception: FileNotFoundException => Assert.assertNotNull(exception)
+      case exception: FileNotFoundException => assertNotNull(exception)
     }
   }
 }

@@ -1,19 +1,20 @@
-package test.scala.utilitiesTest.validationsTest
+package utilitiesTest.validationsTest
 
 import java.util
 
 import model.Action.{Action, getActionFromIntValue}
 import model.TypeAndDate.{maxActionValue, minActionValue}
 import model.exceptions.{EmptyStringException, IncorrectSizeListException, WrongParamValueException}
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import utilities.validations.ValidationsUtil
 
-object ValidationsUtilTest extends ValidationsUtil {
+class ValidationsUtilTest extends ValidationsUtil {
 
   @Test
   def checkActionValueTest(): Unit = {
     // Min action value
+
     val action1: Action = getActionFromIntValue(minActionValue)
     checkActionValue(action1)
     // Max action value
@@ -35,7 +36,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkValue(minValue - 1, minValue, maxValue)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: WrongParamValueException => assertEquals(exceptionMsg, exception.msg)
     }
     // Value is equal to max and min is not specified
     checkValue(maxValue, max = maxValue)
@@ -44,7 +45,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkValue(maxValue + 1, max = maxValue)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: WrongParamValueException => assertEquals(exceptionMsg, exception.msg)
     }
     // Value is okey
     checkValue(minValue + 5, minValue, maxValue)
@@ -60,7 +61,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotNegativeInt(0)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: WrongParamValueException => assertEquals(exceptionMsg, exception.msg)
     }
   }
 
@@ -80,14 +81,14 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotNegativeLong(-0.01.toLong)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: WrongParamValueException => assertEquals(exceptionMsg, exception.msg)
     }
     // Negative value
     try {
       checkNotNegativeLong(-100.toLong)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: WrongParamValueException => assertEquals(exceptionMsg, exception.msg)
     }
   }
 
@@ -102,7 +103,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotEmptyString(emptyString)
     }
     catch {
-      case exception: EmptyStringException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: EmptyStringException => assertEquals(exceptionMsg, exception.msg)
     }
 
     // White space string
@@ -111,7 +112,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotEmptyString(whiteSpaceString)
     }
     catch {
-      case exception: EmptyStringException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: EmptyStringException => assertEquals(exceptionMsg, exception.msg)
     }
 
     // not empty string
@@ -129,7 +130,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotEmptySeq(Seq())
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(exceptionMsg, exception.msg)
     }
 
     // Check not empty list
@@ -145,7 +146,7 @@ object ValidationsUtilTest extends ValidationsUtil {
       checkNotEmptyLinkedList(new util.LinkedList[Int]())
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(exceptionMsg, exception.msg)
     }
 
     // Not empty linked list

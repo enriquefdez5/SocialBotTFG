@@ -1,14 +1,14 @@
-package test.scala.utilitiesTest.neuralNetworksTest
+package utilitiesTest.neuralNetworksTest
 
 import java.util.Date
 
 import model.exceptions.{IncorrectSizeListException, NotExistingFileException, WrongParamValueException}
 import model.{Post, TypeAndDate}
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull}
 import org.junit.jupiter.api.Test
 import utilities.neuralNetworks.NeuralNetworkUtils
 
-object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
+class NeuralNetworkUtilsTest extends NeuralNetworkUtils {
 
   val negativeLongExceptionMessage = "Long param value can not be less than 0"
   val negativeIntExceptionMessage = "Int param value can not be less than 0"
@@ -23,13 +23,13 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       prepareText(negativeNumberOfChars)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeIntExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeIntExceptionMessage, exception.msg)
     }
 
     // Postivive number of characters
     val positiveNumberOfChars = 100
     val initialChar = 1
-    Assert.assertEquals(positiveNumberOfChars + initialChar, prepareText(positiveNumberOfChars).length )
+    assertEquals(positiveNumberOfChars + initialChar, prepareText(positiveNumberOfChars).length )
   }
 
   @Test
@@ -43,7 +43,7 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       loadNetwork(route)
     }
     catch {
-      case exception: NotExistingFileException => Assert.assertEquals(exceptionMsg, exception.msg)
+      case exception: NotExistingFileException => assertEquals(exceptionMsg, exception.msg)
     }
   }
 
@@ -68,7 +68,7 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       generateNextAction(wrongFollowedPostActions, goodMaxFollowedPostActions, goodTweetsSeq)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeIntExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeIntExceptionMessage, exception.msg)
     }
 
     // Wrong param 2
@@ -76,7 +76,7 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       generateNextAction(goodFollowedPostActions, wrongMaxFollowedPostActions, goodTweetsSeq)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeIntExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeIntExceptionMessage, exception.msg)
     }
 
     // Wrong param 3
@@ -84,13 +84,13 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       generateNextAction(goodFollowedPostActions, goodMaxFollowedPostActions, wrongTweetsSeq)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // Good call
     val action: TypeAndDate = generateNextAction(goodFollowedPostActions, goodMaxFollowedPostActions,
       goodTweetsSeq)
-    Assert.assertNotNull(action)
+    assertNotNull(action)
   }
 
   @Test
@@ -101,15 +101,15 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       getOutputDay(wrongInputDay)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeLongExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeLongExceptionMessage, exception.msg)
     }
     // Double input is max value == 1
     val maxOutputPossible = 1
-    Assert.assertEquals(maxOutputPossible*7, getOutputDay(maxOutputPossible))
+    assertEquals(maxOutputPossible*7, getOutputDay(maxOutputPossible))
 
     // Double input is min value == 0
     val minOutputPossible = 0
-    Assert.assertEquals(minOutputPossible, getOutputDay(minOutputPossible))
+    assertEquals(minOutputPossible, getOutputDay(minOutputPossible))
   }
 
 
@@ -121,15 +121,15 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       getOutputHour(wrongInputHour)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeLongExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeLongExceptionMessage, exception.msg)
     }
     // Double input is max value == 1
     val maxOutputPossible = 1
-    Assert.assertEquals(maxOutputPossible*23, getOutputHour(maxOutputPossible))
+    assertEquals(maxOutputPossible*23, getOutputHour(maxOutputPossible))
 
     // Double input is min value == 0
     val minOutputPossible = 0
-    Assert.assertEquals(minOutputPossible, getOutputHour(minOutputPossible))
+    assertEquals(minOutputPossible, getOutputHour(minOutputPossible))
   }
 
   @Test
@@ -140,15 +140,15 @@ object NeuralNetworkUtilsTest extends NeuralNetworkUtils {
       getOutputAction(wrongInputAction)
     }
     catch {
-      case exception: WrongParamValueException => Assert.assertEquals(negativeLongExceptionMessage, exception.msg)
+      case exception: WrongParamValueException => assertEquals(negativeLongExceptionMessage, exception.msg)
     }
     // Double input is max value == 1
     val maxOutputPossible = 1
-    Assert.assertEquals(maxOutputPossible*3, getOutputAction(maxOutputPossible))
+    assertEquals(maxOutputPossible*3, getOutputAction(maxOutputPossible))
 
     // Double input is min value == 0
     val minOutputPossible = 0
-    Assert.assertEquals(minOutputPossible, getOutputAction(minOutputPossible))
+    assertEquals(minOutputPossible, getOutputAction(minOutputPossible))
   }
 
 

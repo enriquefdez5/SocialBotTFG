@@ -266,25 +266,16 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
   }
 
   /**
-   * TODO(do it tailrec)
    * Function that obtains the maximum number of actions from a list of actions grouped by day of year and by hour.
    * @param dayOfYearAndHourMap, Iterable[Map[Int, Seq[String] ] ]. List of actions grouped by day of year and then by
    * hour.
    * @return Int. Returns the maximum number of actions in an hour.
    */
   private def obtainMaxNumberOfActions(dayOfYearAndHourMap: Iterable[Map[Int, Seq[String]]]): Int = {
-    var maxGroupLength: Int = 0
-    dayOfYearAndHourMap.foreach(mapGroup => {
-      mapGroup.foreach(it => {
-        val dayAndHourGroupLength: Int = it._2.length
-        if (dayAndHourGroupLength > maxGroupLength) {
-          maxGroupLength = dayAndHourGroupLength
-        }
-      })
-    })
-    maxGroupLength
+  dayOfYearAndHourMap.maxBy(mapGroup => {
+    mapGroup.values.size
+    }).head._2.size
   }
-
   /**
    * Function that groups actions by date and then compute the mean of actions executed per hour.
    * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
@@ -320,6 +311,7 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     })
     groupLengthSum / numberOfElements
   }
+
 
   /**
    * Function that filters a sequence of tweets into a sequence of retweets and maps that sequence into a sequence of

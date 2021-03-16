@@ -1,16 +1,16 @@
-package test.scala.twitterapiTest
+package twitterapiTest
 
 import java.util
 import java.util.Date
 
 import model.exceptions.IncorrectSizeListException
 import model.{Post, StatusImpl}
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue}
 import org.junit.jupiter.api.Test
 import twitter4j.Status
-import twitterapi.TwitterServiceOperations._
+import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToPosts}
 
-object TwitterServiceOperationsTest {
+class TwitterServiceOperationsTest {
 
   val emptyListExceptionMessage: String = "List can not be empty"
   val csvSeparator: String = ","
@@ -19,7 +19,8 @@ object TwitterServiceOperationsTest {
   val notExistingId = -1
   val existingUserId: Int = 123456789
   val date: Date = new Date()
-  val tweetPost: Post = Post("This is a post", date, null, notExistingId, notExistingId)
+  val thisIsAPostText: String = "This is a post"
+  val tweetPost: Post = Post(thisIsAPostText, date, null, notExistingId, notExistingId)
   val replyPost: Post = Post("This is a reply", date, null, notExistingId, existingUserId)
   val rtPost: Post = Post("This is a rt post", date,
     new StatusImpl("anotherPost", date, null, notExistingId, notExistingId),
@@ -38,10 +39,10 @@ object TwitterServiceOperationsTest {
     val emptyStatusSeq: Seq[Status] = Seq[Status]()
     try {
       statusesToPosts(emptyStatusSeq)
-      Assert.assertEquals(emptyStatusSeq.length, statusesToPosts(emptyStatusSeq).length)
+      assertEquals(emptyStatusSeq.length, statusesToPosts(emptyStatusSeq).length)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
 
@@ -50,9 +51,9 @@ object TwitterServiceOperationsTest {
     val status2: StatusImpl = new StatusImpl("Status 1 text", date, null, existingUserId, notExistingId)
     val statusSeq: Seq[Status] = Seq[Status](status1, status2)
     val postSeq: Seq[Post] = statusesToPosts(statusSeq)
-    Assert.assertEquals(statusSeq.length, postSeq.length)
-    Assert.assertEquals(statusSeq.head.getText, postSeq.head.text)
-    Assert.assertEquals(statusSeq.head.getCreatedAt, postSeq.head.createdAt)
+    assertEquals(statusSeq.length, postSeq.length)
+    assertEquals(statusSeq.head.getText, postSeq.head.text)
+    assertEquals(statusSeq.head.getCreatedAt, postSeq.head.createdAt)
   }
 
   @Test
@@ -63,7 +64,7 @@ object TwitterServiceOperationsTest {
       getLastTweetNotRetweeted(postSeq, 0)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // rt on seq
@@ -71,16 +72,16 @@ object TwitterServiceOperationsTest {
       new StatusImpl("anotherPost", date, null, notExistingId, notExistingId),
       existingUserId, notExistingId)
     val postSeq2: Seq[Status] = Seq[Status](status1)
-    Assert.assertEquals(null, getLastTweetNotRetweeted(postSeq2, 0))
+    assertEquals(null, getLastTweetNotRetweeted(postSeq2, 0))
 
 
     // no rt on seq
-    val status2: Status = new StatusImpl("This is a post", date, null, notExistingId, notExistingId)
-    val status3: Status = new StatusImpl("This is a post", date, null, notExistingId, notExistingId)
+    val status2: Status = new StatusImpl(thisIsAPostText, date, null, notExistingId, notExistingId)
+    val status3: Status = new StatusImpl(thisIsAPostText, date, null, notExistingId, notExistingId)
     val postSeq3: Seq[Status] = Seq[Status](status2, status3)
     val lastTweetNotRetweeted = getLastTweetNotRetweeted(postSeq3, 0)
-    Assert.assertEquals(status2.getText, lastTweetNotRetweeted.getText)
-    Assert.assertEquals(status2.getCreatedAt, lastTweetNotRetweeted.getCreatedAt)
+    assertEquals(status2.getText, lastTweetNotRetweeted.getText)
+    assertEquals(status2.getCreatedAt, lastTweetNotRetweeted.getCreatedAt)
   }
 
   @Test
@@ -91,21 +92,19 @@ object TwitterServiceOperationsTest {
       getLastTweetNotReplied(postSeq1, 0)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // a reply on seq
     val status1: StatusImpl = new StatusImpl("This is a reply", date, null, notExistingId, existingUserId)
     val postSeq2: Seq[Status] = Seq[Status](status1)
-    Assert.assertEquals(null, getLastTweetNotReplied(postSeq2, 0))
-
     // no replies on seq
     val status2: StatusImpl = new StatusImpl("This is not a reply", date, null, notExistingId, notExistingId)
     val status3: StatusImpl = new StatusImpl("This is not a reply", date, null, notExistingId, notExistingId)
     val postSeq3: Seq[Status] = Seq[Status](status2, status3)
     val lastTweetNotReplied = getLastTweetNotReplied(postSeq3, 0)
-    Assert.assertEquals(status2.getText, lastTweetNotReplied.getText)
-    Assert.assertEquals(status2.getCreatedAt, lastTweetNotReplied.getCreatedAt)
+    assertEquals(status2.getText, lastTweetNotReplied.getText)
+    assertEquals(status2.getCreatedAt, lastTweetNotReplied.getCreatedAt)
   }
 
   @Test
@@ -116,20 +115,20 @@ object TwitterServiceOperationsTest {
       obtainMostRetweetedUserId(emptyPostSeq)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // There are no rts
     val noRtPost: Post = Post("This is not a RT", new Date(), null, notExistingId, notExistingId)
     val noRTPostSeq: Seq[Post] = Seq[Post](noRtPost)
-    Assert.assertEquals(-1, obtainMostRetweetedUserId(noRTPostSeq))
+    assertEquals(-1, obtainMostRetweetedUserId(noRTPostSeq))
 
     // There is only one rt
     val rtStatus = new StatusImpl("This is the rt tweet", date, null, notExistingId, notExistingId)
     val rtPost: Post = Post("This is a RT", new Date(), rtStatus, existingUserId, notExistingId)
     val rtPostSeq: Seq[Post] = Seq[Post](rtPost)
 
-    Assert.assertEquals(existingUserId, obtainMostRetweetedUserId(rtPostSeq))
+    assertEquals(existingUserId, obtainMostRetweetedUserId(rtPostSeq))
 
     // There are several rts and there are more from one id than from other ids
     val existingUserIdAlt = 987654321
@@ -139,7 +138,7 @@ object TwitterServiceOperationsTest {
 
     val rtsPostSeq: Seq[Post] = Seq[Post](rtPost1, rtPost2, rtPost3)
 
-    Assert.assertEquals(existingUserId, obtainMostRetweetedUserId(rtsPostSeq))
+    assertEquals(existingUserId, obtainMostRetweetedUserId(rtsPostSeq))
   }
 
   @Test
@@ -150,20 +149,20 @@ object TwitterServiceOperationsTest {
       obtainMostRepliedUserId(emptyPostSeq)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // There are no replies
     val noReplyPost: Post = tweetPost
     val noReplyPostSeq: Seq[Post] = Seq[Post](noReplyPost)
-    Assert.assertEquals(-1, obtainMostRepliedUserId(noReplyPostSeq))
+    assertEquals(-1, obtainMostRepliedUserId(noReplyPostSeq))
 
     // There is only one reply
 
     val reply: Post = replyPost
     val replyPostSeq: Seq[Post] = Seq[Post](reply)
 
-    Assert.assertEquals(existingUserId, obtainMostRepliedUserId(replyPostSeq))
+    assertEquals(existingUserId, obtainMostRepliedUserId(replyPostSeq))
 
     // There are several replies and there are more from one id than from other ids
     val notMostRepliedId: Int = 987654321
@@ -173,7 +172,7 @@ object TwitterServiceOperationsTest {
     val replyPost3: Post = Post("This is another reply", new Date(), null, notExistingId, notMostRepliedId)
     val repliesPostSeq: Seq[Post] = Seq[Post](replyPost1, replyPost2, replyPost3)
 
-    Assert.assertEquals(existingUserId, obtainMostRepliedUserId(repliesPostSeq))
+    assertEquals(existingUserId, obtainMostRepliedUserId(repliesPostSeq))
   }
 
   @Test
@@ -187,7 +186,7 @@ object TwitterServiceOperationsTest {
       obtainPostActionsProportion(emptyTweets, csvTweets)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // no csvTweets
@@ -199,7 +198,7 @@ object TwitterServiceOperationsTest {
       obtainPostActionsProportion(tweets, emptyCSVTweets)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // no posts
@@ -207,12 +206,10 @@ object TwitterServiceOperationsTest {
     val rtPost2: Post = rtPost
     val tweetsWithoutPost: Seq[Post] = Seq[Post](rt, rtPost2)
     val csvReplyPost1: String = csvReplyPost
-//    "2021-02-27 12:33:51,anotherUsername,username,26,69,2791,\"buen cochazo se va " +
-//      "notando el sueldo de caster\",,,,1303310580464398336,https://twitter.com/IbaiLlanos/status/1303310580464398336"
     val csvTweetsWithOnlyAReply: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvTweetsWithOnlyAReply.add(csvReplyPost1)
 
-    Assert.assertEquals(0, obtainPostActionsProportion(tweetsWithoutPost, csvTweetsWithOnlyAReply))
+    assertEquals(0, obtainPostActionsProportion(tweetsWithoutPost, csvTweetsWithOnlyAReply))
 
     // several followed posts in seq. Post actions in Seq are filtered because they are count in csv actions
     val post1: Post = tweetPost
@@ -222,16 +219,12 @@ object TwitterServiceOperationsTest {
     val postsSeq: Seq[Post] = Seq[Post](post1, post2, post3, post4)
 
     val csvReply1: String = csvReplyPost
-//      "2021-02-27 12:33:51,anotherUsername,username,26,69,2791,\"buen cochazo se va " +
-//      "notando el sueldo de caster\",,,,1303310580464398336,https://twitter.com/Username/status/1303310580464398336"
     val csvReply2: String = csvReplyPost
-//"2021-02-27 16:12:00,anotherOne,username,26,69,2791,\"toma texto crack\",,,," +
-//      "12312314123131,https://twitter.com/Username/status/12312314123131"
     val csvTweetsOnlyReplies: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvTweetsOnlyReplies.add(csvReply1)
     csvTweetsOnlyReplies.add(csvReply2)
 
-    Assert.assertEquals(0, obtainPostActionsProportion(postsSeq, csvTweetsOnlyReplies))
+    assertEquals(0, obtainPostActionsProportion(postsSeq, csvTweetsOnlyReplies))
 
     // several followed posts in csv
     val post12: Post = tweetPost
@@ -247,7 +240,7 @@ object TwitterServiceOperationsTest {
     csvPosts.add(csvPost2)
     csvPosts.add(csvPost3)
 
-    Assert.assertEquals(numberOfFollowedPosts, obtainPostActionsProportion(postsSeq2, csvPosts))
+    assertEquals(numberOfFollowedPosts, obtainPostActionsProportion(postsSeq2, csvPosts))
   }
 
   @Test
@@ -263,7 +256,7 @@ object TwitterServiceOperationsTest {
       obtainMaxActionsPerHour(tweetsSeq, csvTweets)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // empty arraylist
@@ -276,7 +269,7 @@ object TwitterServiceOperationsTest {
       obtainMaxActionsPerHour(tweetsSeq2, csvTweets2)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // only 1 action by date (dont mind post in seq)
@@ -288,7 +281,7 @@ object TwitterServiceOperationsTest {
     val csvTweets3: util.ArrayList[String] = new util.ArrayList[String]()
     csvTweets3.add(csvTweet1)
 
-    Assert.assertEquals(minActionsInHour, obtainMaxActionsPerHour(tweetsSeq3, csvTweets3))
+    assertEquals(minActionsInHour, obtainMaxActionsPerHour(tweetsSeq3, csvTweets3))
 
     // several actions in the same date group
     val severalActionsInHour: Int = 3
@@ -303,7 +296,7 @@ object TwitterServiceOperationsTest {
     csvTweets4.add(csvTweetPost1)
     csvTweets4.add(csvTweetPost2)
 
-    Assert.assertEquals(severalActionsInHour, obtainMaxActionsPerHour(tweetsSeq4, csvTweets4))
+    assertEquals(severalActionsInHour, obtainMaxActionsPerHour(tweetsSeq4, csvTweets4))
   }
 
   @Test
@@ -319,7 +312,7 @@ object TwitterServiceOperationsTest {
       obtainMeanActionsPerHour(tweetsSeq, csvTweets)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // empty arraylist
@@ -332,7 +325,7 @@ object TwitterServiceOperationsTest {
       obtainMeanActionsPerHour(tweetsSeq2, csvTweets2)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // 1 action per group
@@ -345,7 +338,7 @@ object TwitterServiceOperationsTest {
     val csvTweets3: util.ArrayList[String] = new util.ArrayList[String]()
     csvTweets3.add(csvTweet2)
 
-    Assert.assertEquals(oneActionPerGroup, obtainMeanActionsPerHour(tweetsSeq3, csvTweets3))
+    assertEquals(oneActionPerGroup, obtainMeanActionsPerHour(tweetsSeq3, csvTweets3))
 
     // more than 1 action per group
     val tweetPost3: Post = tweetPost
@@ -357,7 +350,7 @@ object TwitterServiceOperationsTest {
     csvTweets4.add(csvTweet3)
     csvTweets4.add(csvTweet4)
 
-    Assert.assertTrue(oneActionPerGroup < obtainMeanActionsPerHour(tweetsSeq4, csvTweets4))
+    assertTrue(oneActionPerGroup < obtainMeanActionsPerHour(tweetsSeq4, csvTweets4))
   }
 
   @Test
@@ -368,28 +361,28 @@ object TwitterServiceOperationsTest {
       obtainRtsInfo(tweets)
     }
     catch {
-      case exception: IncorrectSizeListException => Assert.assertEquals(emptyListExceptionMessage, exception.msg)
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
     }
 
     // No rts in seq
     val tweet: Post = tweetPost
     val tweets2: Seq[Post] = Seq[Post](tweet)
-    Assert.assertEquals(0, obtainRtsInfo(tweets2).length)
+    assertEquals(0, obtainRtsInfo(tweets2).length)
 
     // Rts and post in seq
     val tweet2: Post = rtPost
     val tweets3: Seq[Post] = Seq[Post](tweet, tweet2)
 
-    Assert.assertEquals(date.toString + csvSeparator + rtPost.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(date.toString + csvSeparator + rtPost.retweetedStatusUserId + csvSeparator + rtId,
     obtainRtsInfo(tweets3).head)
 
     // Only rts
     val tweet3: Post = rtPost
     val tweets4: Seq[Post] = Seq[Post](tweet2, tweet3)
 
-    Assert.assertEquals(tweet2.createdAt.toString + csvSeparator + tweet2.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(tweet2.createdAt.toString + csvSeparator + tweet2.retweetedStatusUserId + csvSeparator + rtId,
       obtainRtsInfo(tweets4).head)
-    Assert.assertEquals(tweet3.createdAt.toString + csvSeparator + tweet3.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(tweet3.createdAt.toString + csvSeparator + tweet3.retweetedStatusUserId + csvSeparator + rtId,
       obtainRtsInfo(tweets4)(1))
   }
 

@@ -1,11 +1,11 @@
-package test.scala.utilitiesTest.propertiesReaderUtilTest
+package utilitiesTest.propertiesReaderUtilTest
 
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions.{assertEquals, assertFalse, assertNotNull}
 import org.junit.jupiter.api.Test
 import utilities.properties.PropertiesReaderUtil
 
 
-object PropertiesReaderUtilTest extends PropertiesReaderUtil {
+class PropertiesReaderUtilTest extends PropertiesReaderUtil {
 
   val propertiesTestFileRoute = "./src/test/configTest.properties"
 
@@ -13,10 +13,10 @@ object PropertiesReaderUtilTest extends PropertiesReaderUtil {
   @Test
   def getPropertiesTest(): Unit = {
     // Load first time properties file
-    Assert.assertFalse(getProperties.isEmpty)
+    assertFalse(getProperties.isEmpty)
 
     // Load properties file
-    Assert.assertFalse(getProperties.isEmpty)
+    assertFalse(getProperties.isEmpty)
   }
 
   @Test
@@ -31,8 +31,8 @@ object PropertiesReaderUtilTest extends PropertiesReaderUtil {
     saveProperties()
 
     // test action
-    Assert.assertNotNull(getProperties.getProperty(newPropertyName))
-    Assert.assertEquals(
+    assertNotNull(getProperties.getProperty(newPropertyName))
+    assertEquals(
       getProperties.getProperty(newPropertyName),
       newPropertyValue)
   }
