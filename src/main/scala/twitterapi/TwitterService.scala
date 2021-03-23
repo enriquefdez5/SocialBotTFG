@@ -1,8 +1,13 @@
 package twitterapi
 
 // util libs
+import java.text.SimpleDateFormat
 import java.util
 
+import org.json.{JSONArray, JSONObject}
+
+//import twitter4j.JSONArray
+//import org.json.{JSONArray, JSONObject}
 import twitterapi.TwitterServiceOperations.obtainRtsInfo
 import utilities.properties.PropertiesReaderUtil
 import utilities.validations.ValidationsUtil
@@ -30,6 +35,7 @@ import utilities.dates.DatesUtil
 object TwitterService extends Logging with PropertiesReaderUtil with ValidationsUtil with DatesUtil {
 
   val csvSeparator = ","
+  val twintCSVSeparator = "\t"
 
   /**
    * Function that uses Twitter API to recover the last five tweets from the given user.
@@ -179,6 +185,33 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
     getLastTweetNotReplied(twitter.getUserTimeline(mostRepliedUserId), idx).getId
   }
 
+  private def getMentionName(str: String): String = {
+
+    if (str != "") {
+      try {
+        val jsonArray = new JSONArray(str.stripMargin)
+        if (jsonArray.length() > 0) {
+//          logger.debug(jsonArray.getJSONObject(0).getString("screen_name"))
+          jsonArray.getJSONObject(0).getString("screen_name")
+        }
+        else {
+          ""
+        }
+      }
+      catch {
+        case exception: Exception => {
+//          logger.debug(str)
+//          logger.debug(exception.getMessage)
+          ""
+        }
+      }
+    }
+    else {
+      ""
+    }
+
+  }
+
   def getAllActionsOrderedByDate(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Seq[String] = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
@@ -194,11 +227,18 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
     val calendar = getCalendarInstance
 
     // Get time from tweets read in csv file
-    val csvDates = csvTweets.map(tweet => {
-      val split = tweet.split(csvSeparator)
-      calendar.setTime(simpleDateFormatCSV.parse(split(0)))
-      calendar.getTime.toString + csvSeparator + split(2)
+    val dateColumn = 3
+    val timeColumn = 4
+    val mentionColumn = 31
+
+    val distinctCSVTweets = csvTweets.distinct
+
+    val csvDates = distinctCSVTweets.map(tweet => {
+      val split = tweet.split(twintCSVSeparator)
+      calendar.setTime(simpleDateFormatCSV.parse(split(dateColumn) + " " + split(timeColumn)))
+      calendar.getTime.toString + csvSeparator + getMentionName(split(mentionColumn))
     })
+
 
     // Filter rts from tweets collected from twitter api
     val rts = obtainRtsInfo(tweets)
@@ -225,6 +265,7 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       calendarToOrder.setTime(simpleDateFormatAPI.parse(stringToDate))
       calendarToOrder.getTime
     })
+
 //    orderedDates.map(_ + "\n")
     orderedDates
   }

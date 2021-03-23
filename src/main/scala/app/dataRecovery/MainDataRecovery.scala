@@ -5,7 +5,7 @@ import twitterapi.TwitterService.{getAllActionsOrderedByDate, getTweets}
 import utilities.properties.PropertiesReaderUtil
 
 // Uncomment if cmd is needed
-// import scala.sys.process._
+ import scala.sys.process._
 
 // cmd input for twitterusername
 import scala.io.StdIn.readLine
@@ -41,10 +41,10 @@ object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil 
 
     // User input
     val twitterUsernameProperty = "twitterUsername"
-    val twitterUsername: String = readLine("Type in twitter username to get tweets from")
+    val twitterUsername: String = readLine("Type in twitter username to get tweets from \n")
 
     // language must be spanish or english
-    val language: Boolean = readLine("Type in user language S for spanish, E for english") == "S"
+    val language: Boolean = readLine("Type in user language S for spanish, E for english \n") == "S"
 
 
     // Setting properties based on input
@@ -69,42 +69,29 @@ object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil 
     getProperties.setProperty(csvActionsPropertyName, generateActionsPath + getProperties.getProperty
     (twitterUsernameProperty) + ".csv")
 
-
     // Update properties file with new info
     saveProperties()
 
-    // Getting csv tweets
-    // TODO see how to code it
-        // Coding. Using library getOldTweets4j locally imported
-//    val tweets = getOldTweetsByUsername(getProperties.getProperty("twitterUsername"))
-//    val tweetText = getTextFromGetOldTweets(tweets)
+    // Executing cmd command. Using sys.process to execute a command and get the file into app.
+    val command = "twint -u " + twitterUsername + " -o " + csvTweetsFileNamePath + getProperties.getProperty(twitterUsernameProperty) + ".csv --csv"
+    command.!!
 
-        // Reading from manual csv. Csv obtained by executing cmd command outside app and importing file into app
-        // manually
-    val textColumn: Int = 6
+    // Read file, remove header and get tweet text
+    val textColumn: Int = 10
     val tweets = readCSVFile()
     tweets.remove(0)
-    val tweetText = tweets.map(_.split(",")(textColumn).replace("\"", ""))
-
-        // Executing cmd command. Using sys.process to execute a command and get the file into app.
-//    val command = "python ./Optimized-Modified-GetOldTweets3-OMGOT-master/GetOldTweets3.py --username " +
-//      "\"angelmartin_nc\" --maxtweets 10000"
-//    val output = command.!!
-//    logger.debug(command)
-
+    val tweetText = tweets.map(_.split("\t")(textColumn).replace("\"", ""))
 
     // Getting twitter api tweets
     val apiTweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
     val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
 
 
-
     // Clean and filter csv tweets for character nn training
     val filteredTweets = cleanTweets(tweetText, language)
+
     // Add marks to text for the neural network
     val characterTrainingTweets: Seq[String] = markTweets(filteredTweets)
-
-
 
     // Write tweets text in file
     writeDataOnAFile(characterTrainingTweets)

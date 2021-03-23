@@ -51,26 +51,6 @@ class DatesUtilTest extends DatesUtil {
     assertNotNull(builtDate)
   }
 
-//  @Test
-//  def waitForDateTest(): Unit = {
-//    // wait for date when date to wait for is after now
-//    val nowPlusOneMin = new Date(getCalendarInstance.getTimeInMillis + oneMinuteInMillis)
-//    val beforeExecutionCurrentTimeMillis = currentTimeMillis()
-//    waitForDate(nowPlusOneMin, new Date())
-//    val afterExecutionCurrentTimeMillis = currentTimeMillis()
-//    // Check that execution time is close to one minute
-//    Assert.assertTrue((afterExecutionCurrentTimeMillis - beforeExecutionCurrentTimeMillis) >
-//      (oneMinuteInMillis-oneMinuteInMillis/3))
-//
-//    // wait for date when date to wait for is before now
-//    val nowLessOne = new Date(getCalendarInstance.getTimeInMillis - oneMinuteInMillis)
-//    Assert.assertTrue(waitForDate(nowLessOne, new Date()))
-//
-//    // wait for date when date to wait for is the same hour as now
-//    val newDate = new Date()
-//    Assert.assertTrue(waitForDate(newDate, newDate))
-//  }
-
   @Test
   def getCalendarInstanceTest(): Unit = {
     // Check calendar instance is not null when call
@@ -246,13 +226,16 @@ class DatesUtilTest extends DatesUtil {
   }
 
   private def createTestingStringArrayList: util.ArrayList[String] = {
-    val post1 = "2020-01-03 12:00:00,IbaiLlanos,SkainLoL,26,69,2791,\"buen cochazo se va notando el sueldo de " +
-      "caster\",,,,1303310580464398336,https://twitter.com/IbaiLlanos/status/1303310580464398336"
-    val post2 = "2020-01-01 10:00:00,IbaiLlanos,,65,728,8380,\"Lo sabía. Lo sabía desde hace tiempo, y Jordi Cruz su " +
-      "ayudante.Qué hijos de puta, como se lo tenían callado.http://ver.20m.es/jibeb3\",,,,1303307843391684609,https://twitter" +
-      ".com/IbaiLlanos/status/1303307843391684609"
-    val post3 = "2020-01-01 10:0:00,IbaiLlanos,jxtamartin,53,53,4683,\"No os voy a invitar a cenar eh\",,,," +
-      "1303264091662880769,https://twitter.com/IbaiLlanos/status/1303264091662880769"
+    val post1 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-03\t12:00:00\tIbaiLlanos\tSkainLoL\t26\t69\t2791" +
+      "\t\"buen cochazo se va notando el sueldo de caster\"\t\t\t\t\t1303310580464398336" +
+      "\thttps://twitter.com/IbaiLlanos/status/1303310580464398336\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+    val post2 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:00:00\tIbaiLlanos\t\t65\t728\t8380\t\"Lo sabía." +
+      " Lo sabía desde hace tiempo, y Jordi Cruz su ayudante.Qué hijos de puta, como se lo tenían callado." +
+      "http://ver.20m.es/jibeb3\"\t\t\t\t1303307843391684609\thttps://twitter.com/IbaiLlanos/status/1303307843391684609" +
+      "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+    val post3 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:0:00\tIbaiLlanos\tjxtamartin\t53\t53\t4683\t" +
+      "\"No os voy a invitar a cenar eh\"\t\t\t\t1303264091662880769\thttps://twitter.com/IbaiLlanos/status/1303264091662880769" +
+      "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
     val arrayListToReturn = new util.ArrayList[String]()
     arrayListToReturn.add(post1)
     arrayListToReturn.add(post2)
@@ -265,5 +248,6 @@ class DatesUtilTest extends DatesUtil {
     val grouped = groupTwitterActionsByDates(postSeq, postArrayList)
     val differentDatesPosts = 2
     assertEquals(differentDatesPosts, grouped.size )
+    logger.debug("asdad")
   }
 }

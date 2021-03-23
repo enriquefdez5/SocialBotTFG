@@ -26,11 +26,21 @@ class TwitterServiceOperationsTest {
     new StatusImpl("anotherPost", date, null, notExistingId, notExistingId),
     existingUserId, notExistingId)
 
-  val csvTweetPost: String = "2021-01-02 15:30:58,username,,65,728,8380,\"This is a normal tweet posted\",,,," +
-    "1303307843391684609,https://twitter.com/username/status/1303307843391684609"
-  val csvReplyPost: String = "2021-02-27 12:33:51,anotherUsername,username,26,69,2791,\"This is a reply tweet\",,,," +
-    "1303310580464398336,https://twitter.com/username/status/1303310580464398336"
+  val firstTextShard: String = "texto pos 0\ttexto pos 1\ttexto pos " +
+    "2\t2021-01-02\t15:30:58\tusername\tusername\t26\t69\t2791" +
+    "\t\"This is a normal tweet posted\"\t\t\t"
+  val secondTextShard: String = "\t\t1303310580464398336" +
+    "\thttps://twitter.com/username/status/1303307843391684609\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+  val csvTweetPost: String = firstTextShard + secondTextShard
+  val csvTweetPost2: String = firstTextShard + "uhuhuh" + secondTextShard
+  val csvTweetPost3: String = firstTextShard + "xdxdxd" + secondTextShard
 
+
+  val csvReplyPost: String = "texto pos 0\ttexto pos 1\ttexto pos " +
+    "2\t2021-02-27\t12:33:51\tusername\tusername\t26\t69\t2791" +
+    "\t\"buen cochazo se va notando el sueldo de caster\"\t\t\t\t\t1303310580464398336" +
+    "\thttps://twitter.com/username/status/1303310580464398336\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" +
+    "[{'screen_name': 'username', 'name': 'Rocket \uD83D\uDE80\uD83C\uDF38', 'id': '160908260'}]"
 
 
   @Test
@@ -209,7 +219,8 @@ class TwitterServiceOperationsTest {
     val csvTweetsWithOnlyAReply: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvTweetsWithOnlyAReply.add(csvReplyPost1)
 
-    assertEquals(0, obtainPostActionsProportion(tweetsWithoutPost, csvTweetsWithOnlyAReply))
+    val postActionProportion = obtainPostActionsProportion(tweetsWithoutPost, csvTweetsWithOnlyAReply)
+    assertEquals(0, postActionProportion)
 
     // several followed posts in seq. Post actions in Seq are filtered because they are count in csv actions
     val post1: Post = tweetPost
@@ -233,14 +244,15 @@ class TwitterServiceOperationsTest {
 
     val numberOfFollowedPosts: Int = 3
     val csvPost1: String = csvTweetPost
-    val csvPost2: String = csvTweetPost
-    val csvPost3: String = csvTweetPost
+    val csvPost2: String = csvTweetPost2
+    val csvPost3: String = csvTweetPost3
     val csvPosts: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvPosts.add(csvPost1)
     csvPosts.add(csvPost2)
     csvPosts.add(csvPost3)
 
-    assertEquals(numberOfFollowedPosts, obtainPostActionsProportion(postsSeq2, csvPosts))
+    val postActionsProportion = obtainPostActionsProportion(postsSeq2, csvPosts)
+    assertEquals(numberOfFollowedPosts, postActionsProportion)
   }
 
   @Test
@@ -290,11 +302,12 @@ class TwitterServiceOperationsTest {
     val tweetsSeq4: Seq[Post] = Seq[Post](tweetPost1, tweetPost2)
 
     val csvTweetPost1: String = csvTweetPost
-    val csvTweetPost2: String = csvTweetPost
+    val anotherCSVPost: String = csvTweetPost2
+    val anotherOne: String = csvTweetPost3
     val csvTweets4: util.ArrayList[String] = new util.ArrayList[String]()
     csvTweets4.add(csvTweetPost1)
-    csvTweets4.add(csvTweetPost1)
-    csvTweets4.add(csvTweetPost2)
+    csvTweets4.add(anotherCSVPost)
+    csvTweets4.add(anotherOne)
 
     assertEquals(severalActionsInHour, obtainMaxActionsPerHour(tweetsSeq4, csvTweets4))
   }
@@ -345,12 +358,13 @@ class TwitterServiceOperationsTest {
     val tweetsSeq4: Seq[Post] = Seq[Post](tweetPost3)
 
     val csvTweet3: String = csvTweetPost
-    val csvTweet4: String = csvTweetPost
+    val csvTweet4: String = csvTweetPost2
     val csvTweets4: util.ArrayList[String] = new util.ArrayList[String]()
     csvTweets4.add(csvTweet3)
     csvTweets4.add(csvTweet4)
 
-    assertTrue(oneActionPerGroup < obtainMeanActionsPerHour(tweetsSeq4, csvTweets4))
+    val meanActionsPerHour = obtainMeanActionsPerHour(tweetsSeq4, csvTweets4)
+    assertTrue(oneActionPerGroup < meanActionsPerHour)
   }
 
   @Test
