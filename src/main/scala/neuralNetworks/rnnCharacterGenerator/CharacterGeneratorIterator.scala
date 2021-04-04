@@ -9,12 +9,13 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
-import utilities.validations.ValidationsUtil
+import utilities.validations.ValidationsUtilTrait
 
 import scala.annotation.tailrec
 
 class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                                 splittedData: String) extends DataSetIterator with Logging with ValidationsUtil {
+                                 splittedData: Array[String]) extends DataSetIterator with Logging with
+  ValidationsUtilTrait {
 
   // Valid chars used for training
   //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\"\n',.?;()[]{}:!-#@ "
@@ -28,7 +29,7 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
   val charToIdxMap: util.Map[Char, Int] = initializeCharToMap()
 
   // All characters of the input file (after filtering to only those that are valid)
-  val fileCharacters: Array[Char] = setFileCharacters()
+  val fileCharacters: Array[Char] = setFileCharacters(splittedData)
   initializeOffsets()
 
   val notImplementedString: String = "Not implemented yet"
@@ -42,9 +43,9 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
   }
 
 
-  def setFileCharacters(): Array[Char] = {
+  def setFileCharacters(lines: Array[String]): Array[Char] = {
     // Split file into lines
-    val lines: Array[String] = splittedData.split("\n")
+//    val lines: Array[String] = splittedData.split("\n")
     // Get file max size
     val linesSize: Array[String] = lines.clone()
     val maxSize = linesSize.map(s => s.length).sum

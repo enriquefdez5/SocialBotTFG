@@ -1,11 +1,11 @@
 package app.dataRecovery
 
 // Windows cmd
-import twitterapi.TwitterService.{getAllActionsOrderedByDate, getTweets}
-import utilities.properties.PropertiesReaderUtil
+import twitterapi.TwitterService.{getActionsWithMonthSeparator, getAllActionsOrderedByDate, getTrainableActions, getTweets}
+import utilities.properties.PropertiesReaderUtilTrait
 
 // Uncomment if cmd is needed
- import scala.sys.process._
+import scala.sys.process._
 
 // cmd input for twitterusername
 import scala.io.StdIn.readLine
@@ -18,7 +18,7 @@ import scala.collection.JavaConversions._
 // Uncomment if got could be used
 // import twitterapi.getOldTweets.Got.{getOldTweetsByUsername, getTextFromGetOldTweets}
 
-import utilities.fileManagement.FileReaderUtil
+import utilities.fileManagement.FileReaderUtilTraitTrait
 
 // logging
 import org.apache.logging.log4j.scala.Logging
@@ -28,9 +28,9 @@ import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 
 // utilities import
 import utilities.ConfigRun
-import utilities.fileManagement.FileWriterUtil
+import utilities.fileManagement.FileWriterUtilTraitTrait
 
-object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil with PropertiesReaderUtil {
+object MainDataRecovery extends Logging with FileWriterUtilTraitTrait with FileReaderUtilTraitTrait with PropertiesReaderUtilTrait {
 
 
   // Main method for reading tweets and saving in file for later training.
@@ -69,6 +69,16 @@ object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil 
     getProperties.setProperty(csvActionsPropertyName, generateActionsPath + getProperties.getProperty
     (twitterUsernameProperty) + ".csv")
 
+    val textNNPathPropertyName: String = "textNNPath"
+    val textNNPath: String = "./models/"
+    getProperties.setProperty(textNNPathPropertyName, textNNPath + getProperties.getProperty
+    (twitterUsernameProperty) + "Text.zip" )
+
+    val actionNNPathPropertyName: String = "actionNNPath"
+    val actionNNPath: String = "./models/"
+    getProperties.setProperty(actionNNPathPropertyName, actionNNPath + getProperties.getProperty
+    (twitterUsernameProperty) + "Action.zip" )
+
     // Update properties file with new info
     saveProperties()
 
@@ -86,6 +96,9 @@ object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil 
     val apiTweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
     val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
 
+    val actionsWithMonthSeparator = getActionsWithMonthSeparator(actionTrainingTweets)
+    val trainableActions = getTrainableActions(actionsWithMonthSeparator)
+
 
     // Clean and filter csv tweets for character nn training
     val filteredTweets = cleanTweets(tweetText, language)
@@ -97,7 +110,7 @@ object MainDataRecovery extends Logging with FileWriterUtil with FileReaderUtil 
     writeDataOnAFile(characterTrainingTweets)
 
     // Write tweets actions in file
-    writeDataOnAFile(actionTrainingTweets, getProperties.getProperty(csvActionsPropertyName))
+    writeDataOnAFile(trainableActions, getProperties.getProperty(csvActionsPropertyName))
     logger.info("AIBheaviour twitter says good bye!")
   }
 }

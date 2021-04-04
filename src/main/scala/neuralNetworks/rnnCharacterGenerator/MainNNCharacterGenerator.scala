@@ -1,10 +1,17 @@
 package neuralNetworks.rnnCharacterGenerator
 
 import java.io.{File, FileInputStream}
+import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
 
-import org.apache.commons.io.IOUtils
+import neuralNetworks.{NeuralNetworkConfTrait, NeuralNetworkTrainingTrait}
+import org.apache.commons.io.{FilenameUtils, IOUtils}
 import org.apache.logging.log4j.scala.Logging
+import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
+import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
+import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator
+import org.deeplearning4j.earlystopping.termination.{MaxEpochsTerminationCondition, MaxTimeIterationTerminationCondition}
+import org.deeplearning4j.earlystopping.trainer.EarlyStoppingTrainer
 import org.deeplearning4j.nn.conf.layers.{DropoutLayer, LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{BackpropType, MultiLayerConfiguration, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
@@ -18,11 +25,14 @@ import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
-import utilities.properties.PropertiesReaderUtil
+import utilities.properties.PropertiesReaderUtilTrait
 
 import scala.annotation.tailrec
 
-object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
+object MainNNCharacterGenerator extends Logging
+                                   with PropertiesReaderUtilTrait
+                                   with NeuralNetworkConfTrait
+                                   with NeuralNetworkTrainingTrait {
 
   def main(args: Array[String]): Unit = {
 
@@ -40,27 +50,77 @@ object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
 
     // Reading data from file
     val data = IOUtils.toString(new FileInputStream(getProperties.getProperty("dataSetFileName")), "UTF-8")
-    val iter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
-                                                              trainingConfItem.exampleLength, rng, data)
+    val splitData = data.split(getSplitSymbol)
+    val splitSize = (splitData.length * getTrainingPercentage) / totalPercentage
+    val trainingData = getTrainingData(splitData, splitSize)
+    val testingData = getTestData(splitData, splitSize)
 
-    // Set up network configuration:
-    val conf: MultiLayerConfiguration = configureNetwork(confItem, iter.inputColumns(), iter.totalOutcomes())
+
+    val trainingIter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
+                                                                               trainingConfItem.exampleLength,
+                                                                               rng,
+                                                                               trainingData)
+    val testIter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
+                                                                           trainingConfItem.exampleLength,
+                                                                           rng,
+                                                                           testingData)
+
+    // Configure and create network
+    val nIn = trainingIter.inputColumns()
+    val nOut = trainingIter.totalOutcomes()
+    val conf: MultiLayerConfiguration = configureNetwork(confItem, nIn, nOut)
     val net = new MultiLayerNetwork(conf)
     net.init()
     net.setListeners(new ScoreIterationListener(1))
     logger.debug(net.summary())
 
+    // Configure early stopping
+//    val directory: String = "./models/" + getProperties.getProperty("twitterUsername")
+//    val saver: LocalFileModelSaver = getSaver(directory)
+//
+//    val maxEpochNumber = 1000
+//    val maxTimeAmount = 240
+
+//    val bestModel = fitNetwork(maxEpochNumber, maxTimeAmount, trainingIter, testIter, net, saver)
+//    fitNetwork(maxEpochNumber, maxTimeAmount, trainingIter, testIter, net, saver)
+//
+//    val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = getEsConf(maxEpochNumber,
+//                                                                          maxTimeAmount,
+//                                                                          testIter,
+//                                                                          saver)
+//    val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
+//    val result: EarlyStoppingResult[MultiLayerNetwork] = trainer.fit()
+//
+//    logger.debug("Termination reason: " + result.getTerminationReason)
+//    logger.debug("Termination details: " + result.getTerminationDetails)
+//    logger.debug("Total epochs: " + result.getTotalEpochs)
+//    logger.debug("Best epoch number: " + result.getBestModelEpoch)
+//    logger.debug("Score at best epoch: " + result.getBestModelScore)
+//
+//    val bestModel: MultiLayerNetwork = result.getBestModel
+//
+////    // Evaluate best model obtained with test data.
+////    evaluateNet(bestModel, testIter)
+//
+//    saveNetwork(bestModel, getProperties.getProperty("textNNPath"))
+
+
+//    logger.debug("\n-----------------------")
+//    logger.debug("Here is a sample with initilialization string: \"Sirva este tweet \":\n")
+//    val charactersToSample = 200
+//    sampleCharactersFromNetwork("Sirva este tweet ", bestModel, trainingIter, rng, charactersToSample)
+//    logger.debug("\n-----------------------")
+//    logger.debug("Here is another sample with no initilialization string:\n")
+//    sampleCharactersFromNetwork(generationInitialization, bestModel, trainingIter, rng, charactersToSample)
+
+
+
     // Do training, then generate and print samples from network
     val idx = 0
-    fitAndSample(net, iter, rng, generationInitialization, trainingConfItem, idx)
+    fitAndSample(net, trainingIter, rng, generationInitialization, trainingConfItem, idx)
 
     // Save trained network
-    saveNetwork(net)
-  }
-
-  private def saveNetwork(net: MultiLayerNetwork): Unit = {
-    val locationToSave = new File(getProperties.getProperty("textNNPath"))
-    net.save(locationToSave, true)
+    saveNetwork(net, getProperties.getProperty("textNNPath"))
   }
 
   def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterGeneratorIterator,
@@ -186,20 +246,12 @@ object MainNNCharacterGenerator extends Logging with PropertiesReaderUtil{
         ) + "\"")
       val samples: String = sampleCharactersFromNetwork(trainingConfItem.generationInitialization, net, iter, rng,
         trainingConfItem.nCharactersToSample)
-      logger.debug("----- Sample -----")
+      logger.debug("----- Generated sample -----")
       logger.debug(samples + lineBreak)
-      logger.debug("----- Another sample ------")
-      val anotherSample: String = sampleCharactersFromNetwork("El gobierno y ", net, iter, rng,
-        trainingConfItem.nCharactersToSample)
-      logger.debug(anotherSample + lineBreak)
-      logger.debug("----- And another one ------")
-      val anotherOne: String = sampleCharactersFromNetwork("El puto Reven es un ", net, iter, rng,
-        trainingConfItem.nCharactersToSample)
-      logger.debug(anotherOne + lineBreak)
     }
   }
   private def getCharacterExampleIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                                  data: String): CharacterGeneratorIterator = {
+                                  data: Array[String]): CharacterGeneratorIterator = {
     new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data)
   }
 

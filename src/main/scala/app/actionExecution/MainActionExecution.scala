@@ -8,13 +8,15 @@ import org.apache.logging.log4j.scala.Logging
 import twitterapi.TwitterService.{getLastFiveTweets, getTweets}
 import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainPostActionsProportion}
 import utilities.ConfigRun
-import utilities.dates.DatesUtil
-import utilities.fileManagement.FileReaderUtil
-import utilities.neuralNetworks.NeuralNetworkUtils
+import utilities.dates.DatesUtilTraitTrait
+import utilities.fileManagement.FileReaderUtilTraitTrait
+import utilities.neuralNetworks.NeuralNetworkUtilTraitTraitTrait
+import utilities.properties.PropertiesReaderUtilTrait
 
 import scala.annotation.tailrec
 
-object MainActionExecution extends Logging with FileReaderUtil with NeuralNetworkUtils with DatesUtil {
+object MainActionExecution extends Logging with PropertiesReaderUtilTrait with FileReaderUtilTraitTrait with NeuralNetworkUtilTraitTraitTrait with
+  DatesUtilTraitTrait {
 
 
   def main(args: Array[String]): Unit = {
@@ -24,12 +26,11 @@ object MainActionExecution extends Logging with FileReaderUtil with NeuralNetwor
     // Loop for generating and executing actions
     val idx = 0
     val loopLimit = 10
-    val twitterUser = "ibaiLLanos"
     // Get twitter api tweets
-    val tweets = getTweets(conf, twitterUser)
+    val tweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
 
     // Get csv tweets and remove header
-    val csvTweets: util.ArrayList[String] = readCSVFile("./src/data(not modify)/ibaiLLanos.csv")
+    val csvTweets: util.ArrayList[String] = readCSVFile(getProperties.getProperty("csvTweetsFileName"))
     csvTweets.remove(0)
 
     // Mean and max actions per hour
@@ -60,10 +61,18 @@ object MainActionExecution extends Logging with FileReaderUtil with NeuralNetwor
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
       val lastFiveTweetsForNextAction = getLastFiveTweets(conf, getProperties.getProperty("twitterUsername"))
+      lastFiveTweetsForNextAction.foreach(tweet => {
+      })
       val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions,
         lastFiveTweetsForNextAction)
       val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
+
+      logger.debug("-----------------------------")
+      logger.debug(newTypeAndDateAction.action.toString)
+      logger.debug(newTypeAndDateAction.dayOfWeek.toString)
+      logger.debug(newTypeAndDateAction.hourOfDay.toString)
+      logger.debug("-----------------------------")
       // Action at same hour
       if (isAtSameHour) {
         // Another action at same hour can be done

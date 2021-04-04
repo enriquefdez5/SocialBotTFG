@@ -4,12 +4,11 @@ package model
 import java.util.Random
 
 import model.exceptions.IncorrectCommandActionException
-import utilities.validations.ValidationsUtil
+import utilities.validations.ValidationsUtilTrait
 
 // Command imports
 import model.Action.{POST, REPLY, RT, getActionFromIntValue}
-import twitterapi.commandActions.{ActionCommand, PostCommand, ReplyCommand, RtCommand}
-
+import twitterapi.commandActions.{ActionCommandTrait, PostCommandTrait, ReplyCommandTrait, RtCommandTrait}
 
 // model imports
 import model.Action.Action
@@ -18,7 +17,7 @@ import model.Action.Action
 import org.apache.logging.log4j.scala.Logging
 
 // dates imports
-import utilities.dates.DatesUtil
+import utilities.dates.DatesUtilTraitTrait
 
 /**
  * Case class that represents an action to be executed on Twitter the dayOfWeek day at hourOfDay hour. The action to
@@ -30,13 +29,13 @@ import utilities.dates.DatesUtil
  * @param action, Action. Action enumeration value representing the type of action that must be executed.
  * 1 for POST, 2 for RT and 3 for REPLY
  */
-case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: ActionCommand)
+case class TypeAndDate(dayOfWeek: Int, hourOfDay: Int, action: ActionCommandTrait)
 
-object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
+object TypeAndDate extends Logging with ValidationsUtilTrait with DatesUtilTraitTrait {
 
-  val maxDayValue = 6
+  val maxDayValue = 7
   val maxHourValue = 23
-  val minDayValue = 0
+  val minDayValue = 1
   val minHourValue = 0
   val maxActionValue = 3
   val minActionValue = 1
@@ -76,51 +75,41 @@ object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
   }
 
 
-  private def createCommandAction(action: Action): ActionCommand = {
+  private def createCommandAction(action: Action): ActionCommandTrait = {
     checkActionValue(action)
 
     action match {
-      case POST => new PostCommand
-      case RT => new RtCommand
-      case REPLY => new ReplyCommand
+      case POST => new PostCommandTrait
+      case RT => new RtCommandTrait
+      case REPLY => new ReplyCommandTrait
       case _ => throw IncorrectCommandActionException()
     }
   }
+
   /**
    * Function that converts a given tweet as a Post object into a TypeAndDate object.
    * @param lastTweet, Post. Tweet given as a Post object which will be converted into a TypeAndDate object with the
    * day and hour of the given tweet and the action the tweet is.
    * @return TypeAndDate. The TypeAndDate built object.
    */
-  def postToTypeAndDate(lastTweet: Post): TypeAndDate = {
-    validatePostObject(lastTweet)
-
+  def postToTypeAndDate(lastTweet: StatusImpl): TypeAndDate = {
     val calendar = getCalendarInstance
-    calendar.setTime(lastTweet.createdAt)
+    calendar.setTime(lastTweet.createdAtDate)
     val day: Int = getCalendarDay(calendar)
     val hour: Int = getCalendarHour(calendar)
     val action: Action = getActionFromPostObject(lastTweet)
     TypeAndDate(day, hour, createCommandAction(action))
   }
 
-  /**
-   * Private function that checks a Post object
-   * @param post, Post. Post object which be validatedto be validated
-   */
-  private def validatePostObject(post: Post): Unit = {
-    checkNotNegativeLong(post.getInReplyToUserId)
-    checkNotNegativeLong(post.retweetedStatusUserId)
-  }
+
   /**
    * Function that returns an action type as an Integer based on Post received as param.
-   * @param post to identify type of action from Twitter.
+   * @param post, StatusImpl object to identify type of action from Twitter.
    * @return an Int object that represents the action type.
    */
-  private def getActionFromPostObject(post: Post): Action = {
-    validatePostObject(post)
-
+  private def getActionFromPostObject(post: StatusImpl): Action = {
     // If it is a rt, returns rt value that is 2
-    if (post.retweetedStatusUserId == 1) {
+    if (post.currentUserRtId == 1) {
       RT
     }
     // If it is a reply, returns reply value that is 3
@@ -132,5 +121,7 @@ object TypeAndDate extends Logging with ValidationsUtil with DatesUtil {
       POST
     }
   }
+
+
 }
 

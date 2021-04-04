@@ -4,13 +4,14 @@ package twitterapi
 import java.text.SimpleDateFormat
 import java.util
 
-import org.json.{JSONArray, JSONObject}
-
-//import twitter4j.JSONArray
-//import org.json.{JSONArray, JSONObject}
+import model.StatusImpl
+import org.json.JSONArray
+import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, statusesToStatusImpl}
 import twitterapi.TwitterServiceOperations.obtainRtsInfo
-import utilities.properties.PropertiesReaderUtil
-import utilities.validations.ValidationsUtil
+import utilities.properties.PropertiesReaderUtilTrait
+import utilities.validations.ValidationsUtilTrait
+
+import scala.collection.mutable
 
 // logging
 import org.apache.logging.log4j.scala.Logging
@@ -19,31 +20,25 @@ import org.apache.logging.log4j.scala.Logging
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
-// app model
-import model.Post
 
 // twitter4j libs
-import twitter4j.conf.ConfigurationBuilder
-import twitter4j.{Paging, Status, StatusUpdate, Twitter, TwitterFactory}
+import twitter4j.{Paging, Status, StatusUpdate, Twitter}
 
 // app imports
-import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, statusesToPosts}
 import utilities.ConfigRun
-import utilities.dates.DatesUtil
+import utilities.dates.DatesUtilTraitTrait
 
 
-object TwitterService extends Logging with PropertiesReaderUtil with ValidationsUtil with DatesUtil {
-
-  val csvSeparator = ","
-  val twintCSVSeparator = "\t"
+object TwitterService extends Logging with TwitterServiceTrait with PropertiesReaderUtilTrait with ValidationsUtilTrait
+  with DatesUtilTraitTrait {
 
   /**
    * Function that uses Twitter API to recover the last five tweets from the given user.
    * @param conf, ConfigRun. Param needed to connect to the Twitter API.
    * @param userName, String. It is the username for the user tweets will be collected.
-   * @return Seq[Post]. Seq of Post containing the last five tweets the user posted.
+   * @return Seq[StatusImpl]. Seq of StatusImpl containing the last five tweets the user posted.
    */
-  def getLastFiveTweets(conf: ConfigRun, userName: String): Seq[Post] = {
+  def getLastFiveTweets(conf: ConfigRun, userName: String): Seq[StatusImpl] = {
     checkNotEmptyString(userName)
     val pageInit = 1
     val pageSize = 5
@@ -51,25 +46,26 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
     val twitter = getTwitterClient(conf)
     val page = new Paging(pageInit, pageSize)
     val tweets: Seq[Status] = twitter.getUserTimeline(userName, page).toSeq
-    statusesToPosts(tweets)
+    statusesToStatusImpl(tweets)
   }
 
   /**
    * Function that uses twitter api to recover around 3200 tweets from the given username.
    * @param conf, ConfigRun. Param needed to use the twitter api.
    * @param userName, String. It is the username for the user tweets will be collected.
-   * @return Seq[Post]. Seq of Post containing around the 3200 tweets from the user transformed into application
-   * Post objects.
+   * @return Seq[StatusImpl]. Seq of StatusImpl containing around the 3200 tweets from the user transformed into application
+   * StatusImpl objects.
    */
-  def getTweets(conf: ConfigRun, userName: String): Seq[Post] = {
+  def getTweets(conf: ConfigRun, userName: String): Seq[StatusImpl] = {
     checkNotEmptyString(userName)
     val pageInit = 1
     // Obtain twitter client
     val twitter = getTwitterClient(conf)
     // Get ~3200 user tweets
     val tweets = gatherTweets(twitter, pageInit, userName, Seq())
-    statusesToPosts(tweets)
+    statusesToStatusImpl(tweets)
   }
+
 
   /**
    * Function for collecting tweets
@@ -94,20 +90,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       tweets
     }
   }
-
-  /**
-   * Function used for creating a twitter client instance
-   * @return Twitter, a twitter client instance
-   */
-  def getTwitterClient(conf: ConfigRun): Twitter = {
-    val cb = new ConfigurationBuilder()
-    cb.setDebugEnabled(true)
-      .setOAuthConsumerKey(conf.consumerTokenKey())
-      .setOAuthConsumerSecret(conf.consumerTokenKeySecret())
-      .setOAuthAccessToken(conf.accessTokenKey())
-      .setOAuthAccessTokenSecret(conf.accessTokenKeySecret())
-    new TwitterFactory(cb.build).getInstance()
-      }
 
   /**
    * Function that post a tweet on twitter.
@@ -191,7 +173,6 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       try {
         val jsonArray = new JSONArray(str.stripMargin)
         if (jsonArray.length() > 0) {
-//          logger.debug(jsonArray.getJSONObject(0).getString("screen_name"))
           jsonArray.getJSONObject(0).getString("screen_name")
         }
         else {
@@ -212,40 +193,59 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
 
   }
 
-  def getAllActionsOrderedByDate(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Seq[String] = {
+  def getTrainableActions(actions: Seq[String]): Seq[String] = {
+    val calendar = getCalendarInstance
+    val pattern = "EEE MMM dd HH:mm:ss z yyyy"
+    val parser = new SimpleDateFormat(pattern)
+    actions.map(action => {
+      if (action != "-1\n") {
+        val splitAction = action.split(getCSVSeparator)
+        calendar.setTime(parser.parse(splitAction(0)))
+        getCalendarDay(calendar) + getCSVSeparator + getCalendarHour(calendar) + getCSVSeparator + splitAction(2)
+      }
+      else { action }
+    })
+  }
+
+  def getActionsWithMonthSeparator(actionTrainingTweets: Seq[String]): Seq[String] = {
+    var lastDay = 0
+    val calendar = getCalendarInstance
+    val pattern = "EEE MMM dd HH:mm:ss z yyyy"
+    val parser = new SimpleDateFormat(pattern)
+
+    val newActionTrainableSeq: util.ArrayList[String] = new util.ArrayList[String]()
+    actionTrainingTweets.map(action => {
+      val splitAction = action.split(getCSVSeparator)
+      calendar.setTime(parser.parse(splitAction(0)))
+      val day = getCalendarDay(calendar)
+      if (day < lastDay) {
+        lastDay = day
+        newActionTrainableSeq.add("-1\n")
+      }
+      else {
+        lastDay = day
+      }
+      newActionTrainableSeq.add(action)
+    })
+    newActionTrainableSeq
+  }
+
+  def getAllActionsOrderedByDate(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String])
+  : Seq[String] = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 
-    // Pattern for csv file dates
-    val csvPattern = "yyyy-MM-dd HH:mm:ss"
-    // Patter for twitter dates
-    val apiPattern = "EEE MMM dd HH:mm:ss z yyyy"
-    // Build date formats
-    val simpleDateFormatCSV = getSimpleDateFormat(csvPattern)
-    val simpleDateFormatAPI = getSimpleDateFormat(apiPattern)
-    // Get calendar instance
-    val calendar = getCalendarInstance
-
-    // Get time from tweets read in csv file
-    val dateColumn = 3
-    val timeColumn = 4
-    val mentionColumn = 31
-
+    // Get unique tweets
     val distinctCSVTweets = csvTweets.distinct
-
-    val csvDates = distinctCSVTweets.map(tweet => {
-      val split = tweet.split(twintCSVSeparator)
-      calendar.setTime(simpleDateFormatCSV.parse(split(dateColumn) + " " + split(timeColumn)))
-      calendar.getTime.toString + csvSeparator + getMentionName(split(mentionColumn))
-    })
-
+    // Get date from those tweets
+    val csvDates = getCSVDates(distinctCSVTweets)
 
     // Filter rts from tweets collected from twitter api
     val rts = obtainRtsInfo(tweets)
 
     // Create new dates seq item with all csv dates
     val dates = csvDates.map( csvDate => {
-      if (csvDate.split(csvSeparator).length > 1) {
+      if (csvDate.split(getCSVSeparator).length > 1) {
         csvDate + ",2"
       }
       else {
@@ -258,16 +258,47 @@ object TwitterService extends Logging with PropertiesReaderUtil with Validations
       dates.add(rt)
     })
 
+    orderDates(dates)
+  }
+
+  private def orderDates(dates: mutable.Buffer[String]): mutable.Buffer[String] = {
+    // Patter for twitter dates
+    val apiPattern = "EEE MMM dd HH:mm:ss z yyyy"
     // Order by time
+    val simpleDateFormatAPI = getSimpleDateFormat(apiPattern)
+
     val calendarToOrder = getCalendarInstance
     val orderedDates = dates.sortBy(tweet => {
-      val stringToDate = tweet.split(csvSeparator)(0)
+      val stringToDate = tweet.split(getCSVSeparator)(0)
       calendarToOrder.setTime(simpleDateFormatAPI.parse(stringToDate))
       calendarToOrder.getTime
     })
 
-//    orderedDates.map(_ + "\n")
-    orderedDates
+    orderedDates.map(_ + "\n")
+  }
+
+
+  private def getCSVDates(distinctCSVTweets: mutable.Buffer[String]): mutable.Buffer[String] = {
+    // Pattern for csv file dates
+    val csvPattern = "yyyy-MM-dd HH:mm:ss"
+
+    // Build date formats
+    val simpleDateFormatCSV = getSimpleDateFormat(csvPattern)
+
+
+    // Get time from tweets read in csv file
+    val dateColumn = 3
+    val timeColumn = 4
+    val mentionColumn = 31
+
+    // Get calendar instance
+    val calendar = getCalendarInstance
+
+    distinctCSVTweets.map(tweet => {
+      val split = tweet.split(getTwintSeparator)
+      calendar.setTime(simpleDateFormatCSV.parse(split(dateColumn) + " " + split(timeColumn)))
+      calendar.getTime.toString + getCSVSeparator + getMentionName(split(mentionColumn))
+    })
   }
 
   /**

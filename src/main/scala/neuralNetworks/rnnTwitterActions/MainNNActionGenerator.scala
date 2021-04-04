@@ -1,17 +1,21 @@
 package neuralNetworks.rnnTwitterActions
 
 import java.io.{File, FileInputStream}
+import java.text.SimpleDateFormat
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
 
+import model.TypeAndDate.{getCSVSeparator, getCalendarDay, getCalendarHour, getCalendarInstance}
+import neuralNetworks.{NeuralNetworkConfTrait, NeuralNetworkTrainingTrait}
 import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.scala.Logging
+import org.deeplearning4j.datasets.iterator.AsyncShieldDataSetIterator
+import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
 import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator
 import org.deeplearning4j.earlystopping.termination.{MaxEpochsTerminationCondition, MaxTimeIterationTerminationCondition}
 import org.deeplearning4j.earlystopping.trainer.EarlyStoppingTrainer
-import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{BackpropType, MultiLayerConfiguration, NeuralNetConfiguration}
@@ -25,11 +29,12 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
-import utilities.properties.PropertiesReaderUtil
+import utilities.properties.PropertiesReaderUtilTrait
 
 import scala.annotation.tailrec
 
-object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
+object MainNNActionGenerator extends Logging with PropertiesReaderUtilTrait with NeuralNetworkConfTrait with
+  NeuralNetworkTrainingTrait{
 
   def main(args: Array[String]): Unit = {
 
@@ -39,43 +44,61 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
     val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(getProperties)
 
     // Reading data and creating training and test iterators
-    val data: String = IOUtils.toString(new FileInputStream(getProperties.getProperty("csvTweetsFileName")), "UTF-8")
+    val data: String = IOUtils.toString(new FileInputStream(getProperties.getProperty("actionsCSVFileName")), "UTF-8")
     val splitData = data.split(getSplitSymbol)
+
+
     val splitSize: Int = (splitData.length * 80) / 100
     val trainingData = getTrainingData(splitData, splitSize)
     val testingData = getTestData(splitData, splitSize)
 
-    val trainingIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
-                                                          trainingConfItem.exampleLength,
-                                                          trainingData)
-    val testIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
-                                                      trainingConfItem.exampleLength,
-                                                      testingData)
 
-    val rng = new Random(confItem.seed)
-    val nIn = trainingIter.inputColumns()
-    val nOut = trainingIter.totalOutcomes()
+
+    val trainingIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
+                                                   trainingConfItem.exampleLength,
+                                                   trainingData)
+//    val trainingIterShield = new AsyncShieldDataSetIterator(trainingIter)
+
+    val testIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
+                                               trainingConfItem.exampleLength,
+                                               testingData)
 
     // Configure and create network
+    val nIn = trainingIter.inputColumns()
+    val nOut = trainingIter.totalOutcomes()
     val netConf: MultiLayerConfiguration = configureNetwork(confItem, nIn, nOut)
     val net = new MultiLayerNetwork(netConf)
     net.init()
     net.setListeners(new ScoreIterationListener(1))
     logger.debug(net.summary())
 
-    // ---------------------------
+    // Configure early stopping
+//    val directory: String = "./models/earlyStopping/" + getProperties.getProperty("twitterUsername") +"Actions"
+//    val saver: LocalFileModelSaver = getSaver(directory)
+
     val maxEpochNumber = 1000
-    val maxTimeAmount = 960
+    val maxTimeAmount = 240
+
+//    val bestModel = fitNetwork(maxEpochNumber, maxTimeAmount, trainingIter, testIter, net, saver)
+//    fitNetwork(maxEpochNumber, maxTimeAmount, trainingIter, testIter, net, saver)
+
+
+
     val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = new EarlyStoppingConfiguration.Builder()
       .epochTerminationConditions(new MaxEpochsTerminationCondition(maxEpochNumber))
       .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
       .scoreCalculator(new DataSetLossCalculator(testIter, true))
       .evaluateEveryNEpochs(1)
-      .modelSaver(new LocalFileModelSaver("models/earlyStop.zip"))
+      .modelSaver(new LocalFileModelSaver("./models/"))
       .build()
 
-    val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
 
+//    val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = getEsConf(maxEpochNumber,
+//                                                                          maxTimeAmount,
+//                                                                          testIter,
+//                                                                          saver)
+
+    val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
     val result: EarlyStoppingResult[MultiLayerNetwork] = trainer.fit()
 
     logger.debug("Termination reason: " + result.getTerminationReason)
@@ -84,19 +107,19 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
     logger.debug("Best epoch number: " + result.getBestModelEpoch)
     logger.debug("Score at best epoch: " + result.getBestModelScore)
 
-
     val bestModel: MultiLayerNetwork = result.getBestModel
-
-    // Evaluate best model obtained with test data.
+//
+//     Evaluate best model obtained with test data.
     evaluateNet(bestModel, testIter)
 
-    saveNetwork(bestModel)
+    saveNetwork(bestModel, getProperties.getProperty("actionNNPath"))
     // ---------------------------
-//
-//
+
+
 //    // Do training, then generate and print samples from network
 //    val idx = 0
 //    val scores = new util.ArrayList[String]()
+//    val rng = new Random()
 //    fitAndSample(net, trainingIter, testIter, rng, trainingConfItem, idx, scores)
 //
 //    // Evaluate with test data
@@ -105,15 +128,15 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
 //    // Save network
 //    val locationToSave = new File("nnWorkingTest.zip")
 //    net.save(locationToSave)
-//
-//    // Save training scores for future logging
+
+    // Save training scores for future logging
 //    writeScores(scores, "./trainingScores.txt")
   }
 
-  private def saveNetwork(net: MultiLayerNetwork): Unit = {
-    val locationToSave = new File("/models/nnCharacters.zip")
-    net.save(locationToSave)
-  }
+//  private def saveNetwork(net: MultiLayerNetwork): Unit = {
+//    val locationToSave = new File("/models/nnCharacters.zip")
+//    net.save(locationToSave)
+//  }
   /**
    * Private tailrec function for traditional training without early stopping. It is used when no early stopping training is configured.
    * @param net, MultiLayerNetwork. Network to be trained.
@@ -232,74 +255,6 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
     regEval
   }
 
-
-  /**
-   * Private function that splits dataset into training data and testing data.
-   * @param splitData, Array[String]. Read dataset to be split.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Split string with the given size.
-   */
-  private def getTrainingData(splitData: Array[String], splitSize: Int): Array[String] = {
-    val idx = 0
-    val arrayToReturn: Array[String] = new Array[String](splitSize)
-    addTrainingElement(arrayToReturn, idx, splitData, splitSize)
-    arrayToReturn
-  }
-
-  /**
-   * Private tailrec function that obtains a training string from the training dataset.
-   *
-   * @param arrayToReturn, Array[String]. Array of strings to return with the training data.
-   * @param idx, Int. Idx value for stopping the tail recursive loop when it is greater than split size.
-   * @param splitData, Array[String]. Array of strings that contains the data to be split into training and test.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Array of strings containing the training data.
-   */
-  @tailrec
-  private def addTrainingElement(arrayToReturn: Array[String], idx: Int, splitData: Array[String], splitSize: Int): Array[String] = {
-    if (idx < splitSize) {
-      arrayToReturn(idx) = splitData(idx)
-      addTrainingElement(arrayToReturn, idx + 1, splitData, splitSize)
-    }
-    else {
-      arrayToReturn
-    }
-  }
-
-
-  /**
-   * Private function that returns the test data.
-   * @param splitData, Array[String]. Read dataset to be split.
-   * @param splitSize, Int.Size of the split.
-   * @return Array[String]. Split string with the given size.
-   */
-  private def getTestData(splitData: Array[String], splitSize: Int) : Array[String] = {
-    val idx = 0
-    val arrayToReturn: Array[String] = new Array[String](splitData.length - splitSize)
-    addTestElement(arrayToReturn, idx, splitData, splitSize)
-    arrayToReturn
-  }
-
-  /**
-   * Private tailrec function that obtains a testing string from the testing dataset.
-   *
-   * @param arrayToReturn, Array[String]. Array of strings to return with the testing data.
-   * @param idx, Int. Idx value for stopping the tail recursive loop when it is greater than split size.
-   * @param splitData, Array[String]. Array of strings that contains the data to be split into training and test.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Array of strings containing the testing data.
-   */
-  @tailrec
-  private def addTestElement(arrayToReturn: Array[String], idx: Int, splitData: Array[String], splitSize: Int): Array[String] = {
-    if (idx < splitData.length - splitSize) {
-      arrayToReturn(idx) = splitData(idx + splitSize)
-      addTestElement(arrayToReturn, idx + 1, splitData, splitSize)
-    }
-    else {
-      arrayToReturn
-    }
-  }
-
   /**
    * Private function for creating the neural network configuration item.
    * @param properties, Properties. Object containing the info of the properties file to configure the neural network.
@@ -352,7 +307,8 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
       .seed(confItem.seed)
       .weightInit(confItem.weightInit)
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .updater(new Adam(confItem.learningRate))
+//      .updater(new Adam(confItem.learningRate))
+      .updater(new Adam(0.01))
 //      .l2(confItem.l2)
       .list()
 
@@ -385,11 +341,5 @@ object MainNNActionGenerator extends Logging with PropertiesReaderUtil {
       addLayers(conf, confItem, confItem.layerWidth, idx + 1)
     }
   }
-
-  /**
-   * Private function for getting the split symbol used to split tweets.
-   * @return the split symbol.
-   */
-  private def getSplitSymbol: String = "\n"
 
 }

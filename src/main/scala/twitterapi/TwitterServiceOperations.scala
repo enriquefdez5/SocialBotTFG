@@ -2,12 +2,12 @@ package twitterapi
 
 import java.util
 
-import model.Post
+import model.StatusImpl
 import org.apache.logging.log4j.scala.Logging
 import twitter4j.Status
-import twitterapi.TwitterService.{csvSeparator, getAllActionsOrderedByDate}
-import utilities.dates.DatesUtil
-import utilities.validations.ValidationsUtil
+import twitterapi.TwitterService.getAllActionsOrderedByDate
+import utilities.dates.DatesUtilTraitTrait
+import utilities.validations.ValidationsUtilTrait
 
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
@@ -15,24 +15,24 @@ import scala.collection.JavaConversions._
 /**
  * Object that contains the functions and operations the Twitter Service Object needs.
  */
-object TwitterServiceOperations extends Logging with ValidationsUtil with DatesUtil {
+object TwitterServiceOperations extends Logging with TwitterServiceTrait with ValidationsUtilTrait with DatesUtilTraitTrait {
 
   /**
    * Function that transforms a sequence of status (Seq[Status]) into  a sequence of Post objects (Seq[Post]).
    * @param tweets, Seq[Status]. A sequence of actions collected from the Twitter API.
    * @return a Seq[Post] that is the result of the transformation.
    */
-  def statusesToPosts(tweets: Seq[Status]): Seq[Post] = {
+  def statusesToStatusImpl(tweets: Seq[Status]): Seq[StatusImpl] = {
     checkNotEmptySeq(tweets)
 
     val calendar = getCalendarInstance
     tweets.map(it => {
       calendar.setTime(it.getCreatedAt)
       if (it.getRetweetedStatus != null) {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, it.getRetweetedStatus.getUser.getId, -1)
+        StatusImpl(it.getText, calendar.getTime, it.getRetweetedStatus.getUser.getId, -1, it.getRetweetedStatus )
       }
       else {
-        Post(it.getText, calendar.getTime, it.getRetweetedStatus, -1, it.getInReplyToStatusId)
+        StatusImpl(it.getText, calendar.getTime, -1, it.getInReplyToStatusId, it.getRetweetedStatus)
       }
     })
   }
@@ -87,22 +87,22 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
 
   /**
    * Function that obtains the most retweeted user id from a sequence of tweets containing posts, replies and retweets.
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into StatusImpl
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @return Long, an identifier of the most retweeted user.
    */
-  def obtainMostRetweetedUserId(tweets: Seq[Post]): Long = {
+  def obtainMostRetweetedUserId(tweets: Seq[StatusImpl]): Long = {
     checkNotEmptySeq(tweets)
 
     // Filter rts
     val onlyRts = tweets.filter(it => {
-      isRetweet(it.retweetedStatus)
+      isRetweet(it.rtStatus)
     })
 
     // Group by user id
     if (onlyRts.nonEmpty) {
       val onlyRetweetedGroupedByUserId = onlyRts.groupBy(it => {
-        it.retweetedStatusUserId
+        it.currentUserRtId
       })
 
       // Find most retweeted one
@@ -113,11 +113,11 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
 
   /**
    * Function that obtains the most replied user id from a list of tweets containing posts, replies and retweets.
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into Post
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @return Long, an identifier of the most replied user.
    */
-  def obtainMostRepliedUserId(tweets: Seq[Post]): Long = {
+  def obtainMostRepliedUserId(tweets: Seq[StatusImpl]): Long = {
     checkNotEmptySeq(tweets)
 
     // Filter replies
@@ -141,11 +141,11 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * Function that finds the most interacted user from a list of post objects grouped by the user who wrote the tweet.
    * @param groupedTweets , Map[ Long, Seq[Post] ]. It is a map of Post objects grouped by user id.
    * User ids as keys.
-   * Seq[Post] as values for each user id.
+   * Seq[StatusImpl] as values for each user id.
    * @return Long, the identifier of the most interacted user from the given list of post objects grouped by user
    *         identifier.
    */
-  def getMostInteractedUser(groupedTweets: Map[Long, Seq[Post]]): Long = {
+  def getMostInteractedUser(groupedTweets: Map[Long, Seq[StatusImpl]]): Long = {
     val maxSize: Int = 0
     val mostInteractedUser: Long = 0
     val idx = 0
@@ -153,9 +153,10 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     getMostInteractedUserLoop(groupedTweets, maxSize, mostInteractedUser, keys, idx)
   }
 
+
   /**
-   * Inner loop for finding the most interacted user from a list of Post objects grouped by user id.
-   * @param groupedTweets, Map[Long, Seq[Post] ]. A list of Post objects grouped by the user id who interacted with
+   * Inner loop for finding the most interacted user from a list of StatusImpl objects grouped by user id.
+   * @param groupedTweets, Map[Long, Seq[StatusImpl] ]. A list of StatusImpl objects grouped by the user id who interacted with
    * them.
    * @param maxSize, Int. The greatest amount of interactions. Used to obtain the most interacted user.
    * @param mostInteractedUserId, Long. The user id of the user with the most interactions in each step of the loop.
@@ -164,7 +165,8 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
    * @return Long. The most interacted user id.
    */
   @tailrec
-  private def getMostInteractedUserLoop(groupedTweets: Map[Long, Seq[Post]], maxSize: Int, mostInteractedUserId: Long,
+  private def getMostInteractedUserLoop(groupedTweets: Map[Long, Seq[StatusImpl]], maxSize: Int,
+                                        mostInteractedUserId: Long,
                                         keys: List[Long], idx: Int): Long = {
     checkNotNegativeInt(maxSize)
     checkNotNegativeLong(mostInteractedUserId)
@@ -182,21 +184,22 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     else { mostInteractedUserId }
   }
 
+
   /**
-   * Function that obtains the maximum number of followed post actions from the list of historical actions of a user.
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
-   * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
+   * Function that obtains the maximum number of followed StatusImpl actions from the list of historical actions of a user.
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * objects. It contains a maximum of 3200 actions composed by StatusImpl, retweets and replies.
    * @param csvTweets, ArrayList[String]. A list of actions readed from the csv file. It contains a full user
    * historical composed by tweets and replies. It does not contain retweets.
-   * @return Int. The computed maximum number of followed post actions.
+   * @return Int. The computed maximum number of followed StatusImpl actions.
    */
-  def obtainPostActionsProportion(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+  def obtainPostActionsProportion(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 
     val orderedDates: Seq[String] = getAllActionsOrderedByDate(tweets, csvTweets)
     val actions: Seq[String] = orderedDates.map(it => {
-      it.split(csvSeparator)(2)
+      it.split(getCSVSeparator)(2)
     })
     getPostProportion(actions)
   }
@@ -232,7 +235,7 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     checkNotNegativeInt(idx)
 
     if (idx < actions.length) {
-      if (actions.get(idx) == "1") {
+      if (actions.get(idx).replace("\n", "") == "1") {
         if (postCount >= maxCount){
           getPostProportionLoop(actions, postCount + 1, postCount + 1, idx + 1)
         }
@@ -249,21 +252,24 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     }
   }
 
+
   /**
    * Function that groups actions by date and then finds the max number of actions executed in any hour.
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into Post
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @param csvTweets, ArrayList[String]. A list of actions readed from the csv file. It contains a full user
    * historical composed by tweets and replies. It does not contain retweets.
    * @return Int. Returns the maximum number of actions per hour found.
    */
-  def obtainMaxActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+  def obtainMaxActionsPerHour(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMaxNumberOfActions(dayOfYearAndHourMap)
   }
+
+
 
   /**
    * Function that obtains the maximum number of actions from a list of actions grouped by day of year and by hour.
@@ -276,21 +282,25 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
     mapGroup.values.size
     }).head._2.size
   }
+
+
   /**
    * Function that groups actions by date and then compute the mean of actions executed per hour.
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into Post
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @param csvTweets, ArrayList[String]. A list of actions readed from the csv file. It contains a full user
    * historical composed by tweets and replies. It does not contain retweets.
    * @return Int. Returns the mean actions per hour.
    */
-  def obtainMeanActionsPerHour(tweets: Seq[Post], csvTweets: util.ArrayList[String]): Int = {
+  def obtainMeanActionsPerHour(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 
     val dayOfYearAndHourMap = groupTwitterActionsByDates(tweets, csvTweets)
     obtainMean(dayOfYearAndHourMap)
   }
+
+
 
   /**
    * TODO (do it tailrec)
@@ -316,20 +326,22 @@ object TwitterServiceOperations extends Logging with ValidationsUtil with DatesU
   /**
    * Function that filters a sequence of tweets into a sequence of retweets and maps that sequence into a sequence of
    * strings composed with those tweets' dates
-   * @param tweets, Seq[Post]. A sequence of actions obtained from the twitter API and then transformed into Post
+   * @param tweets, Seq[StatusImpl]. A sequence of actions obtained from the twitter API and then transformed into Post
    * objects. It contains a maximum of 3200 actions composed by posts, retweets and replies.
    * @return Seq[String]. Converted sequence of tweets into seq of strings composed by dates.
    */
-  def obtainRtsInfo(tweets: Seq[Post]): Seq[String] = {
+  def obtainRtsInfo(tweets: Seq[StatusImpl]): Seq[String] = {
     checkNotEmptySeq(tweets)
 
     val onlyRTs = tweets.filter(tweet => {
-      isRetweet(tweet.retweetedStatus)
+      isRetweet(tweet.rtStatus)
     })
+
     onlyRTs.map(tweet => {
-      tweet.createdAt.toString + csvSeparator + tweet.retweetedStatusUserId + csvSeparator + "3"
+      tweet.createdAtDate.toString + getCSVSeparator + tweet.currentUserRtId + getCSVSeparator + "3"
     })
   }
+
 
   /**
    * Function that checks if a Status is a Retweet action or not.

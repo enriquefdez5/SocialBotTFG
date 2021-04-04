@@ -4,11 +4,11 @@ import java.util
 import java.util.Date
 
 import model.exceptions.IncorrectSizeListException
-import model.{Post, StatusImpl}
+import model.StatusImpl
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue}
 import org.junit.jupiter.api.Test
 import twitter4j.Status
-import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToPosts}
+import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToStatusImpl}
 
 class TwitterServiceOperationsTest {
 
@@ -20,11 +20,10 @@ class TwitterServiceOperationsTest {
   val existingUserId: Int = 123456789
   val date: Date = new Date()
   val thisIsAPostText: String = "This is a post"
-  val tweetPost: Post = Post(thisIsAPostText, date, null, notExistingId, notExistingId)
-  val replyPost: Post = Post("This is a reply", date, null, notExistingId, existingUserId)
-  val rtPost: Post = Post("This is a rt post", date,
-    new StatusImpl("anotherPost", date, null, notExistingId, notExistingId),
-    existingUserId, notExistingId)
+  val tweetPost: StatusImpl = StatusImpl(thisIsAPostText, date, notExistingId, notExistingId, null)
+  val replyPost: StatusImpl = StatusImpl("This is a reply", date, notExistingId, existingUserId, null)
+  val rtPost: StatusImpl = StatusImpl("This is a rt post", date, existingUserId, notExistingId, new StatusImpl
+  ("anotherPost", date, notExistingId, notExistingId, null))
 
   val firstTextShard: String = "texto pos 0\ttexto pos 1\ttexto pos " +
     "2\t2021-01-02\t15:30:58\tusername\tusername\t26\t69\t2791" +
@@ -48,8 +47,8 @@ class TwitterServiceOperationsTest {
     // empty seq
     val emptyStatusSeq: Seq[Status] = Seq[Status]()
     try {
-      statusesToPosts(emptyStatusSeq)
-      assertEquals(emptyStatusSeq.length, statusesToPosts(emptyStatusSeq).length)
+      statusesToStatusImpl(emptyStatusSeq)
+      assertEquals(emptyStatusSeq.length, statusesToStatusImpl(emptyStatusSeq).length)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -57,10 +56,10 @@ class TwitterServiceOperationsTest {
 
 
     // 2 status to posts
-    val status1: StatusImpl = new StatusImpl("Status 1 text", date, null, existingUserId, notExistingId)
-    val status2: StatusImpl = new StatusImpl("Status 1 text", date, null, existingUserId, notExistingId)
+    val status1: StatusImpl = StatusImpl("Status 1 text", date, existingUserId, notExistingId, null)
+    val status2: StatusImpl = StatusImpl("Status 1 text", date, existingUserId, notExistingId, null)
     val statusSeq: Seq[Status] = Seq[Status](status1, status2)
-    val postSeq: Seq[Post] = statusesToPosts(statusSeq)
+    val postSeq: Seq[StatusImpl] = statusesToStatusImpl(statusSeq)
     assertEquals(statusSeq.length, postSeq.length)
     assertEquals(statusSeq.head.getText, postSeq.head.text)
     assertEquals(statusSeq.head.getCreatedAt, postSeq.head.createdAt)
@@ -78,16 +77,15 @@ class TwitterServiceOperationsTest {
     }
 
     // rt on seq
-    val status1: Status = new StatusImpl("This is a rt", date,
-      new StatusImpl("anotherPost", date, null, notExistingId, notExistingId),
-      existingUserId, notExistingId)
+    val status1: Status = new StatusImpl("This is a rt", date, existingUserId, notExistingId,
+      StatusImpl("anotherPost", date, notExistingId, notExistingId, null))
     val postSeq2: Seq[Status] = Seq[Status](status1)
     assertEquals(null, getLastTweetNotRetweeted(postSeq2, 0))
 
 
     // no rt on seq
-    val status2: Status = new StatusImpl(thisIsAPostText, date, null, notExistingId, notExistingId)
-    val status3: Status = new StatusImpl(thisIsAPostText, date, null, notExistingId, notExistingId)
+    val status2: Status = StatusImpl(thisIsAPostText, date, notExistingId, notExistingId, null)
+    val status3: Status = StatusImpl(thisIsAPostText, date, notExistingId, notExistingId, null)
     val postSeq3: Seq[Status] = Seq[Status](status2, status3)
     val lastTweetNotRetweeted = getLastTweetNotRetweeted(postSeq3, 0)
     assertEquals(status2.getText, lastTweetNotRetweeted.getText)
@@ -106,11 +104,11 @@ class TwitterServiceOperationsTest {
     }
 
     // a reply on seq
-    val status1: StatusImpl = new StatusImpl("This is a reply", date, null, notExistingId, existingUserId)
+    val status1: StatusImpl = StatusImpl("This is a reply", date, notExistingId, existingUserId, null)
     val postSeq2: Seq[Status] = Seq[Status](status1)
     // no replies on seq
-    val status2: StatusImpl = new StatusImpl("This is not a reply", date, null, notExistingId, notExistingId)
-    val status3: StatusImpl = new StatusImpl("This is not a reply", date, null, notExistingId, notExistingId)
+    val status2: StatusImpl = StatusImpl("This is not a reply", date, notExistingId, notExistingId, null)
+    val status3: StatusImpl = StatusImpl("This is not a reply", date, notExistingId, notExistingId, null)
     val postSeq3: Seq[Status] = Seq[Status](status2, status3)
     val lastTweetNotReplied = getLastTweetNotReplied(postSeq3, 0)
     assertEquals(status2.getText, lastTweetNotReplied.getText)
@@ -120,7 +118,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainMostRetweetedUserIdTest(): Unit = {
     // There are no posts
-    val emptyPostSeq: Seq[Post] = Seq[Post]()
+    val emptyPostSeq: Seq[StatusImpl] = Seq[StatusImpl]()
     try {
       obtainMostRetweetedUserId(emptyPostSeq)
     }
@@ -129,24 +127,24 @@ class TwitterServiceOperationsTest {
     }
 
     // There are no rts
-    val noRtPost: Post = Post("This is not a RT", new Date(), null, notExistingId, notExistingId)
-    val noRTPostSeq: Seq[Post] = Seq[Post](noRtPost)
+    val noRtPost: StatusImpl = StatusImpl("This is not a RT", new Date(), notExistingId, notExistingId, null)
+    val noRTPostSeq: Seq[StatusImpl] = Seq[StatusImpl](noRtPost)
     assertEquals(-1, obtainMostRetweetedUserId(noRTPostSeq))
 
     // There is only one rt
-    val rtStatus = new StatusImpl("This is the rt tweet", date, null, notExistingId, notExistingId)
-    val rtPost: Post = Post("This is a RT", new Date(), rtStatus, existingUserId, notExistingId)
-    val rtPostSeq: Seq[Post] = Seq[Post](rtPost)
+    val rtStatus: Status = StatusImpl("This is the rt tweet", date, notExistingId, notExistingId, null)
+    val rtPost: StatusImpl = StatusImpl("This is a RT", new Date(), existingUserId, notExistingId, rtStatus)
+    val rtPostSeq: Seq[StatusImpl] = Seq[StatusImpl](rtPost)
 
     assertEquals(existingUserId, obtainMostRetweetedUserId(rtPostSeq))
 
     // There are several rts and there are more from one id than from other ids
     val existingUserIdAlt = 987654321
-    val rtPost1: Post = Post("Post1 text", new Date(), rtStatus, existingUserId, notExistingId)
-    val rtPost2: Post = Post("Post2 text", new Date(), rtStatus, existingUserId, notExistingId)
-    val rtPost3: Post = Post("Post3 text", new Date(), rtStatus, existingUserIdAlt, notExistingId)
+    val rtPost1: StatusImpl = StatusImpl("Post1 text", new Date(), existingUserId, notExistingId, rtStatus)
+    val rtPost2: StatusImpl = StatusImpl("Post2 text", new Date(), existingUserId, notExistingId, rtStatus)
+    val rtPost3: StatusImpl = StatusImpl("Post3 text", new Date(), existingUserIdAlt, notExistingId, rtStatus)
 
-    val rtsPostSeq: Seq[Post] = Seq[Post](rtPost1, rtPost2, rtPost3)
+    val rtsPostSeq: Seq[StatusImpl] = Seq[StatusImpl](rtPost1, rtPost2, rtPost3)
 
     assertEquals(existingUserId, obtainMostRetweetedUserId(rtsPostSeq))
   }
@@ -154,7 +152,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainMostRepliedUserIdTest(): Unit = {
     // There are no posts
-    val emptyPostSeq: Seq[Post] = Seq[Post]()
+    val emptyPostSeq: Seq[StatusImpl] = Seq[StatusImpl]()
     try {
       obtainMostRepliedUserId(emptyPostSeq)
     }
@@ -163,24 +161,24 @@ class TwitterServiceOperationsTest {
     }
 
     // There are no replies
-    val noReplyPost: Post = tweetPost
-    val noReplyPostSeq: Seq[Post] = Seq[Post](noReplyPost)
+    val noReplyPost: StatusImpl = tweetPost
+    val noReplyPostSeq: Seq[StatusImpl] = Seq[StatusImpl](noReplyPost)
     assertEquals(-1, obtainMostRepliedUserId(noReplyPostSeq))
 
     // There is only one reply
 
-    val reply: Post = replyPost
-    val replyPostSeq: Seq[Post] = Seq[Post](reply)
+    val reply: StatusImpl = replyPost
+    val replyPostSeq: Seq[StatusImpl] = Seq[StatusImpl](reply)
 
     assertEquals(existingUserId, obtainMostRepliedUserId(replyPostSeq))
 
     // There are several replies and there are more from one id than from other ids
     val notMostRepliedId: Int = 987654321
 
-    val replyPost1: Post = replyPost
-    val replyPost2: Post = replyPost
-    val replyPost3: Post = Post("This is another reply", new Date(), null, notExistingId, notMostRepliedId)
-    val repliesPostSeq: Seq[Post] = Seq[Post](replyPost1, replyPost2, replyPost3)
+    val replyPost1: StatusImpl = replyPost
+    val replyPost2: StatusImpl = replyPost
+    val replyPost3: StatusImpl = StatusImpl("This is another reply", new Date(), notExistingId, notMostRepliedId, null)
+    val repliesPostSeq: Seq[StatusImpl] = Seq[StatusImpl](replyPost1, replyPost2, replyPost3)
 
     assertEquals(existingUserId, obtainMostRepliedUserId(repliesPostSeq))
   }
@@ -188,7 +186,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainPostActionsProportionTest(): Unit = {
     // no tweets
-    val emptyTweets: Seq[Post] = Seq[Post]()
+    val emptyTweets: Seq[StatusImpl] = Seq[StatusImpl]()
     val csvTweets: java.util.ArrayList[String] = new java.util.ArrayList[String]()
     csvTweets.add("Random csv tweet for not being empty list")
 
@@ -200,8 +198,8 @@ class TwitterServiceOperationsTest {
     }
 
     // no csvTweets
-    val tweet: Post = tweetPost
-    val tweets: Seq[Post] = Seq[Post](tweet)
+    val tweet: StatusImpl = tweetPost
+    val tweets: Seq[StatusImpl] = Seq[StatusImpl](tweet)
     val emptyCSVTweets: java.util.ArrayList[String] = new util.ArrayList[String]()
 
     try {
@@ -212,9 +210,9 @@ class TwitterServiceOperationsTest {
     }
 
     // no posts
-    val rt: Post = rtPost
-    val rtPost2: Post = rtPost
-    val tweetsWithoutPost: Seq[Post] = Seq[Post](rt, rtPost2)
+    val rt: StatusImpl = rtPost
+    val rtPost2: StatusImpl = rtPost
+    val tweetsWithoutPost: Seq[StatusImpl] = Seq[StatusImpl](rt, rtPost2)
     val csvReplyPost1: String = csvReplyPost
     val csvTweetsWithOnlyAReply: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvTweetsWithOnlyAReply.add(csvReplyPost1)
@@ -223,11 +221,11 @@ class TwitterServiceOperationsTest {
     assertEquals(0, postActionProportion)
 
     // several followed posts in seq. Post actions in Seq are filtered because they are count in csv actions
-    val post1: Post = tweetPost
-    val post2: Post = tweetPost
-    val post3: Post = tweetPost
-    val post4: Post = tweetPost
-    val postsSeq: Seq[Post] = Seq[Post](post1, post2, post3, post4)
+    val post1: StatusImpl = tweetPost
+    val post2: StatusImpl = tweetPost
+    val post3: StatusImpl = tweetPost
+    val post4: StatusImpl = tweetPost
+    val postsSeq: Seq[StatusImpl] = Seq[StatusImpl](post1, post2, post3, post4)
 
     val csvReply1: String = csvReplyPost
     val csvReply2: String = csvReplyPost
@@ -238,9 +236,9 @@ class TwitterServiceOperationsTest {
     assertEquals(0, obtainPostActionsProportion(postsSeq, csvTweetsOnlyReplies))
 
     // several followed posts in csv
-    val post12: Post = tweetPost
-    val post22: Post = tweetPost
-    val postsSeq2: Seq[Post] = Seq[Post](post12, post22)
+    val post12: StatusImpl = tweetPost
+    val post22: StatusImpl = tweetPost
+    val postsSeq2: Seq[StatusImpl] = Seq[StatusImpl](post12, post22)
 
     val numberOfFollowedPosts: Int = 3
     val csvPost1: String = csvTweetPost
@@ -258,7 +256,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainMaxActionsPerHourTest(): Unit = {
     // empty seq
-    val tweetsSeq: Seq[Post] = Seq[Post]()
+    val tweetsSeq: Seq[StatusImpl] = Seq[StatusImpl]()
 
     val csvTweet: String = csvTweetPost
     val csvTweets: util.ArrayList[String] = new util.ArrayList[String]()
@@ -272,8 +270,8 @@ class TwitterServiceOperationsTest {
     }
 
     // empty arraylist
-    val tweet: Post = tweetPost
-    val tweetsSeq2: Seq[Post] = Seq[Post](tweet)
+    val tweet: StatusImpl = tweetPost
+    val tweetsSeq2: Seq[StatusImpl] = Seq[StatusImpl](tweet)
 
     val csvTweets2: util.ArrayList[String] = new util.ArrayList[String]()
 
@@ -286,8 +284,8 @@ class TwitterServiceOperationsTest {
 
     // only 1 action by date (dont mind post in seq)
     val minActionsInHour: Int = 1
-    val tweet1: Post = tweetPost
-    val tweetsSeq3: Seq[Post] = Seq[Post](tweet1)
+    val tweet1: StatusImpl = tweetPost
+    val tweetsSeq3: Seq[StatusImpl] = Seq[StatusImpl](tweet1)
 
     val csvTweet1: String = csvTweetPost
     val csvTweets3: util.ArrayList[String] = new util.ArrayList[String]()
@@ -297,9 +295,9 @@ class TwitterServiceOperationsTest {
 
     // several actions in the same date group
     val severalActionsInHour: Int = 3
-    val tweetPost1: Post = tweetPost
-    val tweetPost2: Post = tweetPost
-    val tweetsSeq4: Seq[Post] = Seq[Post](tweetPost1, tweetPost2)
+    val tweetPost1: StatusImpl = tweetPost
+    val tweetPost2: StatusImpl = tweetPost
+    val tweetsSeq4: Seq[StatusImpl] = Seq[StatusImpl](tweetPost1, tweetPost2)
 
     val csvTweetPost1: String = csvTweetPost
     val anotherCSVPost: String = csvTweetPost2
@@ -315,7 +313,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainMeanActionsPerHourTest(): Unit = {
     // empty seq
-    val tweetsSeq: Seq[Post] = Seq[Post]()
+    val tweetsSeq: Seq[StatusImpl] = Seq[StatusImpl]()
 
     val csvTweet: String = csvTweetPost
     val csvTweets: util.ArrayList[String] = new util.ArrayList[String]()
@@ -329,8 +327,8 @@ class TwitterServiceOperationsTest {
     }
 
     // empty arraylist
-    val tweet: Post = tweetPost
-    val tweetsSeq2: Seq[Post] = Seq[Post](tweet)
+    val tweet: StatusImpl = tweetPost
+    val tweetsSeq2: Seq[StatusImpl] = Seq[StatusImpl](tweet)
 
     val csvTweets2: util.ArrayList[String] = new util.ArrayList[String]()
 
@@ -344,8 +342,8 @@ class TwitterServiceOperationsTest {
     // 1 action per group
     val oneActionPerGroup: Int = 1
     // This should be filtered and not taking into account
-    val tweetPost2: Post = tweetPost
-    val tweetsSeq3: Seq[Post] = Seq[Post](tweetPost2)
+    val tweetPost2: StatusImpl = tweetPost
+    val tweetsSeq3: Seq[StatusImpl] = Seq[StatusImpl](tweetPost2)
 
     val csvTweet2: String = csvTweetPost
     val csvTweets3: util.ArrayList[String] = new util.ArrayList[String]()
@@ -354,8 +352,8 @@ class TwitterServiceOperationsTest {
     assertEquals(oneActionPerGroup, obtainMeanActionsPerHour(tweetsSeq3, csvTweets3))
 
     // more than 1 action per group
-    val tweetPost3: Post = tweetPost
-    val tweetsSeq4: Seq[Post] = Seq[Post](tweetPost3)
+    val tweetPost3: StatusImpl = tweetPost
+    val tweetsSeq4: Seq[StatusImpl] = Seq[StatusImpl](tweetPost3)
 
     val csvTweet3: String = csvTweetPost
     val csvTweet4: String = csvTweetPost2
@@ -370,7 +368,7 @@ class TwitterServiceOperationsTest {
   @Test
   def obtainRtsDatesTest(): Unit = {
     // No posts in seq
-    val tweets: Seq[Post] = Seq[Post]()
+    val tweets: Seq[StatusImpl] = Seq[StatusImpl]()
     try {
       obtainRtsInfo(tweets)
     }
@@ -379,24 +377,24 @@ class TwitterServiceOperationsTest {
     }
 
     // No rts in seq
-    val tweet: Post = tweetPost
-    val tweets2: Seq[Post] = Seq[Post](tweet)
+    val tweet: StatusImpl = tweetPost
+    val tweets2: Seq[StatusImpl] = Seq[StatusImpl](tweet)
     assertEquals(0, obtainRtsInfo(tweets2).length)
 
     // Rts and post in seq
-    val tweet2: Post = rtPost
-    val tweets3: Seq[Post] = Seq[Post](tweet, tweet2)
+    val tweet2: StatusImpl = rtPost
+    val tweets3: Seq[StatusImpl] = Seq[StatusImpl](tweet, tweet2)
 
-    assertEquals(date.toString + csvSeparator + rtPost.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(date.toString + csvSeparator + rtPost.currentUserRtId + csvSeparator + rtId,
     obtainRtsInfo(tweets3).head)
 
     // Only rts
-    val tweet3: Post = rtPost
-    val tweets4: Seq[Post] = Seq[Post](tweet2, tweet3)
+    val tweet3: StatusImpl = rtPost
+    val tweets4: Seq[StatusImpl] = Seq[StatusImpl](tweet2, tweet3)
 
-    assertEquals(tweet2.createdAt.toString + csvSeparator + tweet2.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(tweet2.createdAt.toString + csvSeparator + tweet2.currentUserRtId + csvSeparator + rtId,
       obtainRtsInfo(tweets4).head)
-    assertEquals(tweet3.createdAt.toString + csvSeparator + tweet3.retweetedStatusUserId + csvSeparator + rtId,
+    assertEquals(tweet3.createdAt.toString + csvSeparator + tweet3.currentUserRtId + csvSeparator + rtId,
       obtainRtsInfo(tweets4)(1))
   }
 

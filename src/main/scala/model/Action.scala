@@ -1,13 +1,13 @@
 package model
 
 import model.TypeAndDate.{maxActionValue, minActionValue}
-import utilities.validations.ValidationsUtil
+import utilities.validations.ValidationsUtilTrait
 
 /**
  *  Enumeration object containing the three types of Actions available.
  */
 
-object Action extends Enumeration with ValidationsUtil {
+object Action extends Enumeration with ValidationsUtilTrait {
   type Action = Value
   val POST, RT, REPLY = Value
 

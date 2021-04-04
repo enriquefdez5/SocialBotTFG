@@ -9,23 +9,26 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
-import utilities.validations.ValidationsUtil
+import utilities.validations.ValidationsUtilTrait
 
 import scala.annotation.tailrec
 
+import scala.collection.JavaConversions._
+
 class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
                               strings: Array[String])
-                                    extends DataSetIterator with Logging with ValidationsUtil {
+                                    extends DataSetIterator with Logging with ValidationsUtilTrait {
 
   // Get values from strings array parameter
   val values: util.List[String] = getValues(0, new util.ArrayList[String]())
 
   // Get offsets and sizes from the computed values variable
   val offsetsAndSize: util.TreeMap[Int, Int] = new util.TreeMap[Int, Int]()
-  initializeOffsets(0, 0, new util.TreeMap[Int, Int]())
+  initializeOffsets(0, 0, offsetsAndSize)
 
   // Get keys for every split from values variable
-  val keys: util.LinkedList[Int] = getKeys
+  val keys: util.LinkedList[Int] = new util.LinkedList[Int]()
+  getKeys(keys)
 
   // Not implemented error msg
   val notImplementedError = "Not implemented yet"
@@ -35,6 +38,13 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
    */
   @tailrec
   private def getValues(idx: Int, values: util.ArrayList[String]): util.List[String] = {
+//    if (idx < strings.length) {
+//      values.add(strings(idx))
+//      getValues(idx + 1, values)
+//    }
+//    else {
+//      values
+//    }
     if (idx < strings.length) {
       if (strings(idx).length > 2) {
         values.add(strings(idx))
@@ -45,6 +55,7 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
       values
     }
   }
+
 
   /**
    * Private function that initialize the offsets of the iterator. It also shuffles the keys linked list.
@@ -65,7 +76,7 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     //      }
     //    }
     // TODO Check if this works. The call below is the same as the commented code above.
-    if (idx < values.size()) {
+    if (idx < strings.size) {
       if (strings(idx) == "-1") {
         if (idx != 0) {
           map.put(idx-count, count)
@@ -87,11 +98,16 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
    * Private function to get and shuffle keys of offsetsAndSize
    * @return
    */
-  private def getKeys: util.LinkedList[Int] = {
-    val keysToShuffle = new util.LinkedList[Int](offsetsAndSize.keySet())
+  private def getKeys(keys: util.LinkedList[Int]): util.LinkedList[Int] = {
+    val keyset = new util.LinkedList[Int](offsetsAndSize.keySet())
+    keyset.foreach(keys.add(_))
     val seed = 12345
-    Collections.shuffle(keysToShuffle, new Random(seed))
-    keysToShuffle
+    Collections.shuffle(keys, new Random(seed))
+    keys
+//    val keysToShuffle = new util.LinkedList[Int](offsetsAndSize.keySet())
+//    val seed = 12345
+//    Collections.shuffle(keysToShuffle, new Random(seed))
+//    keysToShuffle
   }
 
   /**
@@ -103,8 +119,8 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     checkNotEmptyLinkedList(keys)
     val currMiniBatchSize = Math.min(num, keys.size())
 
-    val input: INDArray = Nd4j.create(Array[Long](currMiniBatchSize, 3, exampleLength), 'f')
-    val labels: INDArray = Nd4j.create(Array[Long](currMiniBatchSize, 3, exampleLength), 'f')
+    val input: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
+    val labels: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
 
     val idx = 0
 
@@ -189,7 +205,9 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
    */
   override def reset(): Unit = {
     keys.clear()
-    initializeOffsets(0, 0, new util.TreeMap[Int, Int]())
+    offsetsAndSize.clear()
+    initializeOffsets(0, 0, offsetsAndSize)
+    getKeys(keys)
   }
 
   /**

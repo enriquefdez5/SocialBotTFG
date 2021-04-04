@@ -2,9 +2,9 @@ package twitterapi
 
 import com.vdurmont.emoji.EmojiParser
 import org.apache.logging.log4j.scala.Logging
-import utilities.validations.ValidationsUtil
+import utilities.validations.ValidationsUtilTrait
 
-object TwitterFilter extends Logging with ValidationsUtil{
+object TwitterFilter extends Logging with ValidationsUtilTrait{
 
 
   /**
@@ -24,10 +24,10 @@ object TwitterFilter extends Logging with ValidationsUtil{
       .map{ _.toLowerCase}                  // Full lowercase for easier training
       .map{ _.replaceAll("=[A-Za-z0-9]* ", "")}   // Remove weird links
       .map{ _.replaceAll("\\w*\\u2026", "")}      // replace last word followed by "..." e.g adios...
-      .map{ _.replaceAll("pic.*", "***PICTURE***")}      // Replace twitter pic links with a tag
-      .map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "***LINK***") }
+      .map{ _.replaceAll("pic.*", "***picture***")}      // Replace twitter pic links with a tag
+      .map{ _.replaceAll("http[A-Za-z0-9-_:./?]*", "***link***") }
       // replace any link e.g http://google.com with a tag
-      .map{ _.replaceAll( "(?:\\uD83C[\\uDF00-\\uDFFF])|(?:\\uD83D[\\uDC00-\\uDDFF])", "***EMOTE***" )}
+      .map{ _.replaceAll( "(?:\\uD83C[\\uDF00-\\uDFFF])|(?:\\uD83D[\\uDC00-\\uDDFF])", "***emote***" )}
       // change emotes into tag
       .map{ EmojiParser.removeAllEmojis }   // replace any other weird Emojis found e.g :)
   }
