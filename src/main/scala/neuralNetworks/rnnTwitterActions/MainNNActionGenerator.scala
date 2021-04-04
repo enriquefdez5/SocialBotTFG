@@ -1,16 +1,13 @@
 package neuralNetworks.rnnTwitterActions
 
-import java.io.{File, FileInputStream}
-import java.text.SimpleDateFormat
+import java.io.FileInputStream
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.{Properties, Random}
 
-import model.TypeAndDate.{getCSVSeparator, getCalendarDay, getCalendarHour, getCalendarInstance}
-import neuralNetworks.{NeuralNetworkConfTrait, NeuralNetworkTrainingTrait}
+import neuralNetworks.NeuralNetworkTrainingTrait
 import org.apache.commons.io.IOUtils
 import org.apache.logging.log4j.scala.Logging
-import org.deeplearning4j.datasets.iterator.AsyncShieldDataSetIterator
 import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
 import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator
@@ -28,13 +25,13 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Adam
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem}
+import utilities.neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem, NeuralNetworkUtilTraitTraitTrait}
 import utilities.properties.PropertiesReaderUtilTrait
 
 import scala.annotation.tailrec
 
-object MainNNActionGenerator extends Logging with PropertiesReaderUtilTrait with NeuralNetworkConfTrait with
-  NeuralNetworkTrainingTrait{
+object MainNNActionGenerator extends Logging with PropertiesReaderUtilTrait with NeuralNetworkUtilTraitTraitTrait
+  with NeuralNetworkTrainingTrait {
 
   def main(args: Array[String]): Unit = {
 

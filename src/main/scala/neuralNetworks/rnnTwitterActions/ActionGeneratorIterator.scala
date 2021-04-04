@@ -16,8 +16,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
-                              strings: Array[String])
-                                    extends DataSetIterator with Logging with ValidationsUtilTrait {
+                              strings: Array[String]) extends DataSetIterator with Logging with ValidationsUtilTrait {
 
   // Get values from strings array parameter
   val values: util.List[String] = getValues(0, new util.ArrayList[String]())

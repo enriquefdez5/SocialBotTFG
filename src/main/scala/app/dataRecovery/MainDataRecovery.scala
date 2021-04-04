@@ -1,8 +1,12 @@
 package app.dataRecovery
 
 // Windows cmd
+import twitter4j.{TwitterException, User}
 import twitterapi.TwitterService.{getActionsWithMonthSeparator, getAllActionsOrderedByDate, getTrainableActions, getTweets}
+import twitterapi.TwitterServiceTrait
 import utilities.properties.PropertiesReaderUtilTrait
+
+import scala.annotation.tailrec
 
 // Uncomment if cmd is needed
 import scala.sys.process._
@@ -30,7 +34,8 @@ import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 import utilities.ConfigRun
 import utilities.fileManagement.FileWriterUtilTraitTrait
 
-object MainDataRecovery extends Logging with FileWriterUtilTraitTrait with FileReaderUtilTraitTrait with PropertiesReaderUtilTrait {
+object MainDataRecovery extends Logging with FileWriterUtilTraitTrait with FileReaderUtilTraitTrait with
+  PropertiesReaderUtilTrait with TwitterServiceTrait{
 
 
   // Main method for reading tweets and saving in file for later training.
@@ -41,10 +46,10 @@ object MainDataRecovery extends Logging with FileWriterUtilTraitTrait with FileR
 
     // User input
     val twitterUsernameProperty = "twitterUsername"
-    val twitterUsername: String = readLine("Type in twitter username to get tweets from \n")
+    val twitterUsername: String = askForTwitterUsername(conf)
 
     // language must be spanish or english
-    val language: Boolean = readLine("Type in user language S for spanish, E for english \n") == "S"
+    val language: Boolean = askForLanguage()
 
 
     // Setting properties based on input
@@ -112,5 +117,41 @@ object MainDataRecovery extends Logging with FileWriterUtilTraitTrait with FileR
     // Write tweets actions in file
     writeDataOnAFile(trainableActions, getProperties.getProperty(csvActionsPropertyName))
     logger.info("AIBheaviour twitter says good bye!")
+  }
+
+  @tailrec
+  private def askForLanguage(): Boolean = {
+    val language: String = readLine("Type in user language S for spanish, E for english \n")
+    if (language != "E" && language != "S") {
+      logger.info("Typed language does not match any valid option. Please type a valid option.")
+      askForLanguage()
+    }
+    else {
+      language == "S"
+    }
+  }
+
+  @tailrec
+  private def askForTwitterUsername(configRun: ConfigRun): String = {
+    val username: String = readLine("Type in twitter username to get tweets from \n")
+    val twitter = getTwitterClient(configRun)
+    try {
+      val user = twitter.showUser(username)
+      showUserInfo(user)
+    }
+    catch {
+      case exception: TwitterException => { logger.debug(exception.getMessage)
+        logger.debug("User with username: \"@" + username + "\" does not exist. Please type a valid username.")
+                                            askForTwitterUsername(configRun)
+                                          }
+    }
+    username
+  }
+
+  private def showUserInfo(user: User): Unit = {
+    logger.info("User found!")
+    logger.info("User id: " + user.getId)
+    logger.info("User name: " + user.getName)
+    logger.info("User description: " + user.getDescription)
   }
 }
