@@ -1,3 +1,4 @@
+Not updated keys, just to see how the future README will looks like. Real keys are saved on external device.
 # SocialBotTFG
 
 ## Twitter Client Credentials
