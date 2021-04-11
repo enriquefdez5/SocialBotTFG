@@ -4,12 +4,15 @@ import java.util.Date
 
 import twitter4j._
 
-case class StatusImpl(text: String, createdAt: Date, rtUserId: Long, replyStatusId: Long, rt: Status  ) extends Status {
+case class StatusImpl(text: String, createdAt: Date, rtUserId: Long, replyStatusId: Long, rt: Status  )
+  extends Status {
     val createdAtDate: Date = createdAt
     val textContent: String = text
     val rtStatus: Status = rt
     val currentUserRtId: Long = rtUserId
     val currentReplyId: Long = replyStatusId
+
+
 
     override def getCreatedAt: Date = createdAtDate
 

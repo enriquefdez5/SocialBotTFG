@@ -1,12 +1,12 @@
 package twitterapiTest
 
+import app.twitterAPI.TwitterFilterTrait
 import model.exceptions.IncorrectSizeListException
 import org.apache.logging.log4j.scala.Logging
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import twitterapi.TwitterFilter.{cleanTweets, markTweets}
 
-class TwitterFilterTest extends Logging {
+class TwitterFilterTest extends Logging with TwitterFilterTrait {
 
   val emptyListExceptionMessage: String = "List can not be empty"
 

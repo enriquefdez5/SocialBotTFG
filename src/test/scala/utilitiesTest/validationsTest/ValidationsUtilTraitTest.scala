@@ -3,7 +3,7 @@ package utilitiesTest.validationsTest
 import java.util
 
 import model.Action.{Action, getActionFromIntValue}
-import model.TypeAndDate.{maxActionValue, minActionValue}
+import model.NNActionItem.{maxActionValue, minActionValue}
 import model.exceptions.{EmptyStringException, IncorrectSizeListException, WrongParamValueException}
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

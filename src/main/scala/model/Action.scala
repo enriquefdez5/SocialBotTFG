@@ -1,6 +1,6 @@
 package model
 
-import model.TypeAndDate.{maxActionValue, minActionValue}
+import model.NNActionItem.{maxActionValue, minActionValue}
 import utilities.validations.ValidationsUtilTrait
 
 /**

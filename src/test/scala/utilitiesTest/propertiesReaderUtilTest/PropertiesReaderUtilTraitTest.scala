@@ -7,15 +7,10 @@ import utilities.properties.PropertiesReaderUtilTrait
 
 class PropertiesReaderUtilTraitTest extends PropertiesReaderUtilTrait {
 
-  val propertiesTestFileRoute = "./src/test/configTest.properties"
-
 
   @Test
   def getPropertiesTest(): Unit = {
     // Load first time properties file
-    assertFalse(getProperties.isEmpty)
-
-    // Load properties file
     assertFalse(getProperties.isEmpty)
   }
 

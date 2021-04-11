@@ -1,36 +1,46 @@
 package app.actionExecution
 
+// java, scala and logging package
 import java.util
 
-import model.TypeAndDate
-import model.TypeAndDate.postToTypeAndDate
+import app.twitterAPI.ConfigRun
+import neuralNetworks.NeuralNetworkTrainingTrait
 import org.apache.logging.log4j.scala.Logging
-import twitterapi.TwitterService.{getLastFiveTweets, getTweets}
-import twitterapi.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainPostActionsProportion}
-import utilities.ConfigRun
-import utilities.dates.DatesUtilTraitTrait
-import utilities.fileManagement.FileReaderUtilTraitTrait
-import utilities.neuralNetworks.NeuralNetworkUtilTraitTraitTrait
-import utilities.properties.PropertiesReaderUtilTrait
+import utilities.console.ConsoleUtilitiesTrait
 
 import scala.annotation.tailrec
 
-object MainActionExecution extends Logging with PropertiesReaderUtilTrait with FileReaderUtilTraitTrait with NeuralNetworkUtilTraitTraitTrait with
-  DatesUtilTraitTrait {
+// model package
+import model.NNActionItem
+import model.NNActionItem.postToTypeAndDate
+
+// twitterAPI package
+import app.twitterAPI.TwitterService.{getLastFiveTweets, getTweets}
+import app.twitterAPI.TwitterServiceOperations.{obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainPostActionsProportion}
+
+// utilities package
+import utilities.dates.DatesUtilTrait
+import utilities.fileManagement.FileReaderUtilTrait
+import utilities.properties.PropertiesReaderUtilTrait
+
+object MainActionExecution extends Logging with ConsoleUtilitiesTrait with PropertiesReaderUtilTrait with
+FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
 
 
   def main(args: Array[String]): Unit = {
     // Twitter API search
     val conf = new ConfigRun(args)
 
+    val twitterUsername: String = askForTwitterUsername(conf)
+
     // Loop for generating and executing actions
     val idx = 0
-    val loopLimit = 10
+    val loopLimit = 20
     // Get twitter api tweets
-    val tweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
+    val tweets = getTweets(conf, twitterUsername)
 
     // Get csv tweets and remove header
-    val csvTweets: util.ArrayList[String] = readCSVFile(getProperties.getProperty("csvTweetsFileName"))
+    val csvTweets: util.ArrayList[String] = readCSVFile("/data(manual)/" + twitterUsername)
     csvTweets.remove(0)
 
     // Mean and max actions per hour
@@ -38,13 +48,15 @@ object MainActionExecution extends Logging with PropertiesReaderUtilTrait with F
     // TODO delete if it will not be used.
     val maxActionsPerHour: Int = obtainMaxActionsPerHour(tweets, csvTweets)
 
+    logger.debug("meanActionsPerHour: " + meanActionsPerHour)
+    logger.debug("maxActionsPerHour: " + maxActionsPerHour)
     // Post
     val maxFollowedPostActions: Int = obtainPostActionsProportion(tweets, csvTweets)
 
     // Get last type and date action from twitter api
-    val lastTypeAndDateAction: TypeAndDate = postToTypeAndDate(tweets.head)
-    loop(conf, idx, loopLimit, lastTypeAndDateAction, sameHourCount = 1, maxActionsPerHour = meanActionsPerHour,
-      followedPostActionsCount = 0, maxFollowedPostActions)
+    val lastTypeAndDateAction: NNActionItem = postToTypeAndDate(tweets.head)
+    loop(conf, twitterUsername, idx, loopLimit, lastTypeAndDateAction, sameHourCount = 1, maxActionsPerHour =
+      meanActionsPerHour, followedPostActionsCount = 0, maxFollowedPostActions)
   }
 
 
@@ -56,15 +68,15 @@ object MainActionExecution extends Logging with PropertiesReaderUtilTrait with F
    * @param loopLimit . Limit value. It defines the loop stop condition.
    */
   @tailrec
-  private def loop(conf: ConfigRun, idx: Int, loopLimit: Int, lastTypeAndDate: TypeAndDate,
+  private def loop(conf: ConfigRun, twitterUsername: String, idx: Int, loopLimit: Int, lastTypeAndDate: NNActionItem,
                    sameHourCount: Int, maxActionsPerHour: Int,
                    followedPostActionsCount: Int, maxFollowedPostActions: Int): Unit = {
     if (idx < loopLimit) {
       val lastFiveTweetsForNextAction = getLastFiveTweets(conf, getProperties.getProperty("twitterUsername"))
-      lastFiveTweetsForNextAction.foreach(tweet => {
+      lastFiveTweetsForNextAction.foreach(it => {
       })
-      val newTypeAndDateAction: TypeAndDate = generateNextAction(followedPostActionsCount, maxFollowedPostActions,
-        lastFiveTweetsForNextAction)
+      val newTypeAndDateAction: NNActionItem = generateNextAction(twitterUsername, followedPostActionsCount,
+        maxFollowedPostActions, lastFiveTweetsForNextAction)
       val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
 
@@ -79,19 +91,19 @@ object MainActionExecution extends Logging with PropertiesReaderUtilTrait with F
         if (sameHourCount < maxActionsPerHour) {
           executeAction(newTypeAndDateAction, conf)
           if (isPostAction) {
-            loop(conf, idx + 1, loopLimit, lastTypeAndDate,
+            loop(conf, twitterUsername, idx + 1, loopLimit, lastTypeAndDate,
               sameHourCount + 1, maxActionsPerHour,
               followedPostActionsCount + 1, maxFollowedPostActions)
           }
           else {
-            loop(conf, idx + 1, loopLimit, lastTypeAndDate,
+            loop(conf, twitterUsername, idx + 1, loopLimit, lastTypeAndDate,
               sameHourCount + 1, maxActionsPerHour,
               0, maxFollowedPostActions)
           }
         }
         else {
           logger.debug("No more actions can be done at the generated hour")
-          loop(conf, idx, loopLimit, newTypeAndDateAction,
+          loop(conf, twitterUsername, idx, loopLimit, newTypeAndDateAction,
             sameHourCount, maxActionsPerHour,
             followedPostActionsCount, maxFollowedPostActions)
         }
@@ -100,12 +112,12 @@ object MainActionExecution extends Logging with PropertiesReaderUtilTrait with F
       else {
         executeAction(newTypeAndDateAction, conf)
         if (isPostAction) {
-          loop(conf, idx + 1, loopLimit, lastTypeAndDate,
+          loop(conf, twitterUsername, idx + 1, loopLimit, lastTypeAndDate,
             sameHourCount = 1, maxActionsPerHour,
             followedPostActionsCount + 1, maxFollowedPostActions)
         }
         else {
-          loop(conf, idx + 1, loopLimit, lastTypeAndDate,
+          loop(conf, twitterUsername, idx + 1, loopLimit, lastTypeAndDate,
             sameHourCount = 1, maxActionsPerHour,
             0, maxFollowedPostActions)
         }
@@ -119,11 +131,12 @@ object MainActionExecution extends Logging with PropertiesReaderUtilTrait with F
    * @param typeAndDate, TypeAndDate item.
    * @param conf, ConfigRun. Item needed to interact with Twitter API.
    */
-  private def executeAction(typeAndDate: TypeAndDate, conf: ConfigRun): Unit = {
+  private def executeAction(typeAndDate: NNActionItem, conf: ConfigRun): Unit = {
     val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)
     val now = getCalendarInstance.getTime
     if (waitForDate(date, now)) {
       typeAndDate.action.execute(conf)
+      waitForNextAction()
     }
   }
 }

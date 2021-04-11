@@ -1,20 +1,23 @@
 package utilities.properties
 
-import java.io.{FileInputStream, FileOutputStream, IOException, OutputStreamWriter}
+import java.io.{FileInputStream, FileOutputStream, IOException, InputStream, OutputStreamWriter}
 import java.nio.charset.StandardCharsets
 import java.util.Properties
 
+import jdk.xml.internal.SecuritySupport.getResourceAsStream
 import org.apache.logging.log4j.scala.Logging
 
 trait PropertiesReaderUtilTrait extends Logging {
 
   private val properties: Properties = new Properties()
-  private val propertiesPath: String = "src/main/resources/config.properties"
+  private val propertiesPath: String = "/config.properties"
 
 
   def getProperties: Properties = {
     if (properties.isEmpty) {
-      properties.load(new FileInputStream(propertiesPath))
+//      properties.load(new FileInputStream(propertiesPath))
+      val inputStream: InputStream = this.getClass.getResourceAsStream(propertiesPath)
+      properties.load(inputStream)
     }
     properties
   }

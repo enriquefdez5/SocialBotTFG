@@ -8,7 +8,7 @@ import model.StatusImpl
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue}
 import org.junit.jupiter.api.Test
 import twitter4j.Status
-import twitterapi.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToStatusImpl}
+import app.twitterAPI.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToStatusImpl}
 
 class TwitterServiceOperationsTest {
 
