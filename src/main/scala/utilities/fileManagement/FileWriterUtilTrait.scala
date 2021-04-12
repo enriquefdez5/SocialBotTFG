@@ -39,6 +39,10 @@ trait FileWriterUtilTrait extends Logging with PropertiesReaderUtilTrait {
     generatedDataDirectory.mkdir()
     generatedDataDirectory.setWritable(true)
     generatedDataDirectory.setReadable(true)
+    val modelsDirectory = new File("./models/")
+    modelsDirectory.mkdir()
+    modelsDirectory.setWritable(true)
+    modelsDirectory.setReadable(true)
   }
   private def getBufferedWriter(fileName: String): BufferedWriter = {
     new BufferedWriter(new FileWriter(new File(fileName)))
