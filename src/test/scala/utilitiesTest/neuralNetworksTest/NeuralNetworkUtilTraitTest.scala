@@ -20,7 +20,7 @@ class NeuralNetworkUtilTraitTest extends NeuralNetworkTrainingTrait {
     // Negative number of characters
     val negativeNumberOfChars = -10
     try {
-      prepareText(negativeNumberOfChars)
+      prepareText("fede", negativeNumberOfChars)
     }
     catch {
       case exception: WrongParamValueException => assertEquals(negativeIntExceptionMessage, exception.msg)
@@ -29,7 +29,7 @@ class NeuralNetworkUtilTraitTest extends NeuralNetworkTrainingTrait {
     // Postivive number of characters
     val positiveNumberOfChars = 100
     val initialChar = 1
-    assertEquals(positiveNumberOfChars + initialChar, prepareText(positiveNumberOfChars).length )
+    assertEquals(positiveNumberOfChars + initialChar, prepareText("angelmartin_nc", positiveNumberOfChars).length )
   }
 
   @Test

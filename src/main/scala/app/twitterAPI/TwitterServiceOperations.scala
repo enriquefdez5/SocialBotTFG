@@ -210,7 +210,7 @@ object TwitterServiceOperations extends Logging with TwitterClientTrait with Val
    * historical composed by tweets and replies. It does not contain retweets.
    * @return Int. The computed maximum number of followed StatusImpl actions.
    */
-  def obtainPostActionsProportion(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
+  def getMaxFollowedPostActions(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 
@@ -222,7 +222,8 @@ object TwitterServiceOperations extends Logging with TwitterClientTrait with Val
   }
 
   /**
-   * Function that starts the loop that computes de proportion of post actions in all the given actions.
+   * Function that starts the loop that computes the maximum number of followed post actions in all the
+   * given actions.
    * @param actions, Seq[String]. Actions as String made of a date and a type of action.
    * @return Double. It is the post proportion in all the given actions.
    */
@@ -309,7 +310,7 @@ object TwitterServiceOperations extends Logging with TwitterClientTrait with Val
    * historical composed by tweets and replies. It does not contain retweets.
    * @return Int. Returns the mean actions per hour.
    */
-  def obtainMeanActionsPerHour(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
+  def getMeanActionsPerHour(tweets: Seq[StatusImpl], csvTweets: util.ArrayList[String]): Int = {
     checkNotEmptySeq(tweets)
     checkNotEmptySeq(csvTweets)
 

@@ -8,7 +8,7 @@ import model.StatusImpl
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue}
 import org.junit.jupiter.api.Test
 import twitter4j.Status
-import app.twitterAPI.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, obtainMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, obtainPostActionsProportion, obtainRtsInfo, statusesToStatusImpl}
+import app.twitterAPI.TwitterServiceOperations.{getLastTweetNotReplied, getLastTweetNotRetweeted, obtainMaxActionsPerHour, getMeanActionsPerHour, obtainMostRepliedUserId, obtainMostRetweetedUserId, getMaxFollowedPostActions, obtainRtsInfo, statusesToStatusImpl}
 
 class TwitterServiceOperationsTest {
 
@@ -191,7 +191,7 @@ class TwitterServiceOperationsTest {
     csvTweets.add("Random csv tweet for not being empty list")
 
     try {
-      obtainPostActionsProportion(emptyTweets, csvTweets)
+      getMaxFollowedPostActions(emptyTweets, csvTweets)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -203,7 +203,7 @@ class TwitterServiceOperationsTest {
     val emptyCSVTweets: java.util.ArrayList[String] = new util.ArrayList[String]()
 
     try {
-      obtainPostActionsProportion(tweets, emptyCSVTweets)
+      getMaxFollowedPostActions(tweets, emptyCSVTweets)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -217,7 +217,7 @@ class TwitterServiceOperationsTest {
     val csvTweetsWithOnlyAReply: java.util.ArrayList[String] = new util.ArrayList[String]()
     csvTweetsWithOnlyAReply.add(csvReplyPost1)
 
-    val postActionProportion = obtainPostActionsProportion(tweetsWithoutPost, csvTweetsWithOnlyAReply)
+    val postActionProportion = getMaxFollowedPostActions(tweetsWithoutPost, csvTweetsWithOnlyAReply)
     assertEquals(0, postActionProportion)
 
     // several followed posts in seq. Post actions in Seq are filtered because they are count in csv actions
@@ -233,7 +233,7 @@ class TwitterServiceOperationsTest {
     csvTweetsOnlyReplies.add(csvReply1)
     csvTweetsOnlyReplies.add(csvReply2)
 
-    assertEquals(0, obtainPostActionsProportion(postsSeq, csvTweetsOnlyReplies))
+    assertEquals(0, getMaxFollowedPostActions(postsSeq, csvTweetsOnlyReplies))
 
     // several followed posts in csv
     val post12: StatusImpl = tweetPost
@@ -249,7 +249,7 @@ class TwitterServiceOperationsTest {
     csvPosts.add(csvPost2)
     csvPosts.add(csvPost3)
 
-    val postActionsProportion = obtainPostActionsProportion(postsSeq2, csvPosts)
+    val postActionsProportion = getMaxFollowedPostActions(postsSeq2, csvPosts)
     assertEquals(numberOfFollowedPosts, postActionsProportion)
   }
 
@@ -320,7 +320,7 @@ class TwitterServiceOperationsTest {
     csvTweets.add(csvTweet)
 
     try {
-      obtainMeanActionsPerHour(tweetsSeq, csvTweets)
+      getMeanActionsPerHour(tweetsSeq, csvTweets)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -333,7 +333,7 @@ class TwitterServiceOperationsTest {
     val csvTweets2: util.ArrayList[String] = new util.ArrayList[String]()
 
     try {
-      obtainMeanActionsPerHour(tweetsSeq2, csvTweets2)
+      getMeanActionsPerHour(tweetsSeq2, csvTweets2)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -349,7 +349,7 @@ class TwitterServiceOperationsTest {
     val csvTweets3: util.ArrayList[String] = new util.ArrayList[String]()
     csvTweets3.add(csvTweet2)
 
-    assertEquals(oneActionPerGroup, obtainMeanActionsPerHour(tweetsSeq3, csvTweets3))
+    assertEquals(oneActionPerGroup, getMeanActionsPerHour(tweetsSeq3, csvTweets3))
 
     // more than 1 action per group
     val tweetPost3: StatusImpl = tweetPost
@@ -361,7 +361,7 @@ class TwitterServiceOperationsTest {
     csvTweets4.add(csvTweet3)
     csvTweets4.add(csvTweet4)
 
-    val meanActionsPerHour = obtainMeanActionsPerHour(tweetsSeq4, csvTweets4)
+    val meanActionsPerHour = getMeanActionsPerHour(tweetsSeq4, csvTweets4)
     assertTrue(oneActionPerGroup < meanActionsPerHour)
   }
 

@@ -5,8 +5,8 @@ import java.util.Random
 import java.util.concurrent.TimeUnit
 
 import model.NNActionItem.{buildTypeAndDateFromDayHourAndAction, postToTypeAndDate}
-import model.{StatusImpl, NNActionItem}
-import model.exceptions.NotExistingFileException
+import model.{NNActionItem, StatusImpl}
+import model.exceptions.{NotExistingFileException, WrongParamValueException}
 import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
 import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
 import org.apache.commons.io.IOUtils
@@ -149,15 +149,15 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    * @param nCharactersToSample. Number of characters to generate
    * @return the generated text as String
    */
-  def prepareText(nCharactersToSample: Int): String = {
+  def prepareText(twitterUsername: String, nCharactersToSample: Int): String = {
     checkNotNegativeInt(nCharactersToSample)
     val initializationString: String = getNoInitializationString
     val rng = new Random()
     val miniBatchSize = getProperties.getProperty("trainingMiniBatchSize").toInt
     val exampleLength = getProperties.getProperty("trainingExampleLength").toInt
-    val iter: CharacterGeneratorIterator = getCharacterIterator(miniBatchSize, exampleLength, rng)
+    val iter: CharacterGeneratorIterator = getCharacterIterator(twitterUsername, miniBatchSize, exampleLength, rng)
     val postNCharactersToSample = nCharactersToSample
-    val textNN = loadNetwork(getProperties.getProperty("textNNPath"))
+    val textNN = loadNetwork("./models/" + twitterUsername + "Text.zip")
     sampleCharactersFromNetwork(initializationString, textNN, iter,
       rng, postNCharactersToSample)
   }
@@ -169,8 +169,9 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    * @param rng. Random object used to set a seed value.
    * @return CharacterIterator object needed to sample characters.
    */
-  private def getCharacterIterator(miniBatchSize: Int, exampleLength: Int, rng: Random): CharacterGeneratorIterator = {
-    val data = IOUtils.toString(new FileInputStream(getProperties.getProperty("dataSetFileName")), "UTF-8")
+  private def getCharacterIterator(twitterUsername: String, miniBatchSize: Int, exampleLength: Int, rng: Random)
+  : CharacterGeneratorIterator = {
+    val data = IOUtils.toString(new FileInputStream("./data(generated)/" + twitterUsername + ".txt"), "UTF-8")
     new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data.split("\n"))
   }
 
@@ -198,17 +199,12 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   def generateNextAction(twitterUsername: String, followedPostActionsCount: Int, maxFollowedPostActions: Int,
                          tweets: Seq[StatusImpl]): NNActionItem = {
     // Get last tweet
-    logger.debug("-------------------------------")
-    logger.debug("followedPostActionsCount: " + followedPostActionsCount.toString)
-    logger.debug("maxFollowedPostActions: " + maxFollowedPostActions.toString)
-    logger.debug("-------------------------------")
     checkNotNegativeInt(followedPostActionsCount)
     checkNotNegativeInt(maxFollowedPostActions)
     checkNotEmptySeq(tweets)
     val inputArray = getNNInputArrayFromTweets(tweets)
 
     generateNextTypeAndDateAction(twitterUsername, followedPostActionsCount, maxFollowedPostActions, inputArray)
-
   }
 
 
@@ -220,17 +216,24 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   private def generateNextTypeAndDateAction(twitterUsername: String, followedPostActionsCount: Int,
   maxFollowedPostActions: Int, inputArray: INDArray): NNActionItem = {
     // Load other neural networks for date generation
-    val typeAndDateNN = loadNetwork("./models/" + twitterUsername + "Action.zip")
-    typeAndDateNN.rnnClearPreviousState()
+    try {
+      val typeAndDateNN = loadNetwork("./models/" + twitterUsername + "Action.zip")
+      typeAndDateNN.rnnClearPreviousState()
 
-    // Generate output
-    val output = typeAndDateNN.output(inputArray)
+      // Generate output
+      val output = typeAndDateNN.output(inputArray)
 
-    // Compose typeAndDate object with output
-    val day = getOutputDay(output.getDouble(0.toLong))
-    val hour = getOutputHour(output.getDouble(1.toLong))
-    val action = getActionValue(getOutputAction(output.getDouble(2.toLong)))
-    buildTypeAndDateFromDayHourAndAction(day, hour, action, followedPostActionsCount, maxFollowedPostActions)
+      // Compose typeAndDate object with output
+      val day = getOutputDay(output.getDouble(0.toLong))
+      val hour = getOutputHour(output.getDouble(1.toLong))
+      val action = getActionValue(getOutputAction(output.getDouble(2.toLong)))
+      buildTypeAndDateFromDayHourAndAction(day, hour, action, followedPostActionsCount, maxFollowedPostActions)
+    }
+    catch {
+      case exception: NotExistingFileException => logger.debug(exception.msg)
+        System.exit(1)
+        buildTypeAndDateFromDayHourAndAction(1, 1, 1, followedPostActionsCount, maxFollowedPostActions)
+    }
   }
   private def getActionValue(value : Long): Int = {
     if (value < 1) {
@@ -246,6 +249,7 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    */
   def getOutputDay(outputDay: Double): Int = {
     checkNotNegativeLong(outputDay.toLong)
+    logger.debug("Generated output day: " + outputDay.toString)
     (outputDay*7).toInt
   }
 
@@ -256,6 +260,7 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    */
   def getOutputHour(outputHour: Double): Int = {
     checkNotNegativeLong(outputHour.toLong)
+    logger.debug("Generated output hour: " + outputHour.toString)
     (outputHour*23).toInt
   }
 
@@ -265,8 +270,17 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    * @return an Integer value that represents the chosen action that will be executed.
    */
   def getOutputAction(outputAction: Double): Int = {
-    checkNotNegativeLong(outputAction.toLong)
-    (outputAction*3).toInt
+    try {
+      checkNotNegativeLong(outputAction.toLong)
+      logger.debug("Generated output hour: " + outputAction.toString)
+      (outputAction*3).toInt
+    }
+    catch {
+      case exception: WrongParamValueException => {
+        logger.info(exception.msg)
+        1
+      }
+    }
   }
 
 
@@ -277,7 +291,7 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    */
   private def getNNInputArrayFromTweets(tweets: Seq[StatusImpl]): INDArray = {
 
-    val numberOfInputs = 5
+    val numberOfInputs = tweets.length
     val numberOfInputElements = 3
     val numberOfTimeSteps = 1
     val inputArray: INDArray = Nd4j.create(Array[Long](numberOfInputs, numberOfInputElements, numberOfTimeSteps),

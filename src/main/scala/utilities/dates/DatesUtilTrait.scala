@@ -46,16 +46,11 @@ trait DatesUtilTrait extends ValidationsUtilTrait with TwitterClientTrait {
    * @return a date object with day and hour from param values. Minutes and seconds set to 0.
    */
   def buildDate(dayOfWeek: Int, hourOfDay: Int): Date = {
-    checkValue(dayOfWeek, max = maxDayValue)
-    checkValue(hourOfDay, max = maxHourValue)
-
     val calendar = getCalendarInstance
     val date = calendar.getTime
     calendar.setTime(date)
-    val computedDayOfWeek = dayOfWeek
-    val computedHourOfDay = hourOfDay
-    calendar.set(Calendar.DAY_OF_WEEK, computedDayOfWeek)
-    calendar.set(Calendar.HOUR_OF_DAY, computedHourOfDay)
+    calendar.set(Calendar.DAY_OF_WEEK, checkDayOfWeek(dayOfWeek))
+    calendar.set(Calendar.HOUR_OF_DAY, checkHourOfDay(hourOfDay))
     calendar.set(Calendar.MINUTE, 0)
     calendar.set(Calendar.SECOND, 0)
     calendar.getTime
@@ -88,6 +83,12 @@ trait DatesUtilTrait extends ValidationsUtilTrait with TwitterClientTrait {
     }
   }
 
+  def waitForNextHour(): Unit = {
+    val calendar = getCalendarInstance
+    calendar.add(Calendar.HOUR, 1)
+    val nextHour = calendar.getTime
+    waitForDate(nextHour, new Date())
+  }
   /**
    * Auxiliar function to obtain a calendar instance
    * @return

@@ -10,9 +10,9 @@ class RtCommand extends Logging with ActionCommandTrait with PropertiesReaderUti
 
   val value = 3
 
-  override def execute(conf: ConfigRun): Unit = {
+  override def execute(twitterUsername: String, conf: ConfigRun): Unit = {
     // Get tweets
-    val tweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
+    val tweets = getTweets(conf, twitterUsername)
     // Get most retweeted User from gathered tweets
     val mostRetweetedUserId: Long = obtainMostRetweetedUserId(tweets)
     // Get tweet to rt

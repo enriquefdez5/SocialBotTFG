@@ -1,6 +1,7 @@
 package utilities.validations
 
 import model.Action.{Action, getPossibleActions}
+import model.NNActionItem.{maxDayValue, maxHourValue, minDayValue, minHourValue}
 import model.exceptions.{EmptyStringException, IncorrectSizeListException, InvalidActionException, NoneParamException, WrongParamValueException}
 import org.apache.logging.log4j.scala.Logging
 
@@ -17,6 +18,29 @@ trait ValidationsUtilTrait extends Logging {
       throw WrongParamValueException("Param value is not valid")
     }
   }
+  def checkDayOfWeek(day: Int): Int = {
+    if (day < minDayValue) {
+      minDayValue
+    }
+    else if (day > maxDayValue) {
+      maxDayValue
+    }
+    else {
+      day
+    }
+  }
+  def checkHourOfDay(hour: Int): Int = {
+    if (hour < minHourValue) {
+      minHourValue
+    }
+    else if (hour > maxHourValue) {
+      maxHourValue
+    }
+    else {
+      hour
+    }
+  }
+
   def checkNotNegativeInt(value: Int): Unit = {
     if (value < 0) {
       throw WrongParamValueException("Int param value can not be less than 0")

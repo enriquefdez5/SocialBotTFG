@@ -12,12 +12,12 @@ class ReplyCommand extends Logging with ActionCommandTrait with PropertiesReader
 
   val value = 2
 
-  override def execute(conf: ConfigRun): Unit = {
+  override def execute(twitterUsername: String, conf: ConfigRun): Unit = {
     // Prepare text
     val nCharactersToSample: Int = 120
-    val replyText: String = prepareText(nCharactersToSample)
+    val replyText: String = prepareText(twitterUsername, nCharactersToSample)
     // Get tweets
-    val tweets = getTweets(conf, getProperties.getProperty("twitterUsername"))
+    val tweets = getTweets(conf, twitterUsername)
     // Get most replied user from gathered tweets
     val mostRepliedUserId: Long = obtainMostRepliedUserId(tweets)
     // Get tweet to reply

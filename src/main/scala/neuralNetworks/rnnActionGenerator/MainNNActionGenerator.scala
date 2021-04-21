@@ -40,7 +40,9 @@ NeuralNetworkTrainingTrait {
     val startTime = System.currentTimeMillis()
 
     val conf = new ConfigRun(args)
-    val twitterUsername: String = askForTwitterUsername(conf)
+
+    val twitterUsernameMsg: String = "Type in twitter username to imitate"
+    val twitterUsername: String = askForTwitterUsername(conf, twitterUsernameMsg)
 
     // Neural network conf parameters
     val confItem: NeuralNetworkConfItem = createNeuralNetworkConfItem(getProperties)
@@ -75,7 +77,7 @@ NeuralNetworkTrainingTrait {
 
 
     val maxEpochNumber = 1000
-    val maxTimeAmount = 240
+    val maxTimeAmount = 300
     val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = new EarlyStoppingConfiguration.Builder()
       .epochTerminationConditions(new MaxEpochsTerminationCondition(maxEpochNumber))
       .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
@@ -210,10 +212,17 @@ NeuralNetworkTrainingTrait {
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(new Adam(confItem.learningRate))
       .list()
+
     addLayers(nnConf, confItem, nIn, 0)
+
     nnConf.layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
       .nIn(confItem.layerWidth).nOut(nOut)
+      .dropOut(0.8)
       .build())
+      // Added for testing
+      .backpropType(confItem.tbpttType)
+      .tBPTTForwardLength(confItem.tbpttLength)
+      .tBPTTBackwardLength(confItem.tbpttLength)
       .build()
   }
 

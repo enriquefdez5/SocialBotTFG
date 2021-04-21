@@ -3,7 +3,7 @@ package model
 // java imports
 import java.util.Random
 
-import model.exceptions.IncorrectCommandActionException
+import model.exceptions.{AIException, IncorrectCommandActionException}
 import utilities.validations.ValidationsUtilTrait
 
 // Command imports
@@ -52,17 +52,22 @@ object NNActionItem extends Logging with ValidationsUtilTrait with DatesUtilTrai
    */
   def buildTypeAndDateFromDayHourAndAction(day: Int, hour: Int, actionValue: Int,
                                            followedPostActionsCount: Int, maxFollowedPostActions: Int): NNActionItem = {
-
-    checkValue(hour, max = maxHourValue)
-    checkValue(day, max = maxDayValue)
-    checkValue(actionValue, minActionValue, maxActionValue)
-    checkNotNegativeInt(followedPostActionsCount)
-    checkNotNegativeInt(maxFollowedPostActions)
-
+    try {
+      checkValue(hour, max = maxHourValue)
+      checkValue(day, max = maxDayValue)
+      checkValue(actionValue, minActionValue, maxActionValue)
+      checkNotNegativeInt(followedPostActionsCount)
+      checkNotNegativeInt(maxFollowedPostActions)
+    }
+    catch {
+      case exception: AIException => {
+        logger.info(exception.getMessage)
+      }
+    }
     if (followedPostActionsCount >= maxFollowedPostActions) {
       val max = 3
       val min = 2
-      val notPostRandomAction: Int = new Random().nextInt(max-min) + min
+      val notPostRandomAction: Int = new Random().nextInt(max-min+1) + min  // +1 because nextInt(1) is only 0
       NNActionItem(day, hour, createCommandAction(getActionFromIntValue(notPostRandomAction)))
     }
     if (actionValue == 0) {

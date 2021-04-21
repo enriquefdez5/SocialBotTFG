@@ -9,8 +9,8 @@ import scala.io.StdIn.readLine
 
 trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait {
 
-  def askForTwitterUsername(configRun: ConfigRun): String = {
-    val username: String = readLine("Type in twitter username to get tweets from \n")
+  def askForTwitterUsername(configRun: ConfigRun, msg: String): String = {
+    val username: String = readLine(msg + "\n")
     val twitter = getTwitterClient(configRun)
     try {
       val user = twitter.showUser(username)
@@ -21,7 +21,7 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait {
       case exception: TwitterException =>
         logger.info(exception.getMessage)
         logger.info("User with username: \"@" + username + "\" does not exist. Please type a valid username.")
-        askForTwitterUsername(configRun)
+        askForTwitterUsername(configRun, msg)
     }
   }
 

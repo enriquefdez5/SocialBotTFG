@@ -14,10 +14,10 @@ class PostCommand extends Logging with ActionCommandTrait with NeuralNetworkTrai
 
   val value = 1
   
-  override def execute(conf: ConfigRun): Unit = {
+  override def execute(twitterUsername: String, conf: ConfigRun): Unit = {
     // Text to post
     val nCharactersToSample: Int = 200
-    val tweetText: String = prepareText(nCharactersToSample)
+    val tweetText: String = prepareText(twitterUsername, nCharactersToSample)
     // Post
     logger.debug("Tweet posted: " + tweetText)
 //    postTweet(tweetText, conf)

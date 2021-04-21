@@ -54,15 +54,25 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
    * @param userName, String. It is the username for the user tweets will be collected.
    * @return Seq[StatusImpl]. Seq of StatusImpl containing the last five tweets the user posted.
    */
-  def getLastFiveTweets(conf: ConfigRun, userName: String): Seq[StatusImpl] = {
-    checkNotEmptyString(userName)
+  def getLastTweet(conf: ConfigRun, idx: Int,
+                   twitterUsername: String, twitterUsernameWhereToPost: String): Seq[StatusImpl] = {
+    checkNotEmptyString(twitterUsername)
+    checkNotEmptyString(twitterUsernameWhereToPost)
+
+
     val pageInit = 1
-    val pageSize = 5
+    val pageSize = 1
     // Obtain twitter client
     val twitter = getTwitterClient(conf)
     val page = new Paging(pageInit, pageSize)
-    val tweets: Seq[Status] = twitter.getUserTimeline(userName, page).toSeq
-    statusesToStatusImpl(tweets)
+    if (idx == 0) {
+      val tweets: Seq[Status] = twitter.getUserTimeline(twitterUsername, page).toSeq
+      statusesToStatusImpl(tweets)
+    }
+    else {
+      val tweets: Seq[Status] = twitter.getUserTimeline(twitterUsernameWhereToPost, page).toSeq
+      statusesToStatusImpl(tweets)
+    }
   }
 
   /**
@@ -288,6 +298,7 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
       calendarToOrder.getTime
     })
 
+//    orderedDates.reverse.map(_+"\n")
     orderedDates.map(_ + "\n")
   }
 
@@ -320,14 +331,6 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
         }
       }
     })
-  }
-
-  /**
-   * Function that returns the twitter username from the properties file.
-   * @return Twitter username from properties file
-   */
-  def getTwitterUsername: String = {
-    getProperties.getProperty("twitterUsername")
   }
 
 }

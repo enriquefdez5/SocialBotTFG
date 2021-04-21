@@ -5,6 +5,6 @@ import app.twitterAPI.ConfigRun
 trait ActionCommandTrait {
 
   val value: Int
-  def execute(conf: ConfigRun): Unit
+  def execute(twitterUsername: String, conf: ConfigRun): Unit
 
 }

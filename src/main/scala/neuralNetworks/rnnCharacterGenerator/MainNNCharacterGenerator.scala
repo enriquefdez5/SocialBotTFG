@@ -33,7 +33,9 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilitiesTrait with 
     val startTime = System.currentTimeMillis()
 
     val twitterConf = new ConfigRun(args)
-    val twitterUsername = askForTwitterUsername(twitterConf)
+
+    val twitterUsernameMsg: String = "Type int twitter username to imitate"
+    val twitterUsername = askForTwitterUsername(twitterConf, twitterUsernameMsg)
 
 
     // Neural network conf parameters
@@ -161,8 +163,7 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilitiesTrait with 
       .updater(new Adam(confItem.learningRate))
       .list()
 
-    val idx = 0
-    addLayers(nnConf, confItem, nIn, idx)
+    addLayers(nnConf, confItem, nIn, 0)
 
     nnConf.layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
       // MCXENT + softmax for classification

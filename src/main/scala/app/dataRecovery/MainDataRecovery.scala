@@ -29,7 +29,8 @@ object MainDataRecovery extends Logging with FileWriterUtilTrait with FileReader
     val conf = new ConfigRun(args)
 
     // User input
-    val twitterUsername: String = askForTwitterUsername(conf)
+    val twitterUsernameMsg: String = "Type in twitter username to get data from"
+    val twitterUsername: String = askForTwitterUsername(conf, twitterUsernameMsg)
 
     // language must be spanish or english
     val language: Boolean = askForLanguage()

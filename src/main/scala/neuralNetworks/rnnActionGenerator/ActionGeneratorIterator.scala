@@ -88,6 +88,10 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     checkNotEmptyLinkedList(keys)
     val currMiniBatchSize = Math.min(num, keys.size())
 
+//    TODO keys remove first here.
+//    pasar offsets(keysFirst) en lugar de exampleLength
+//    pasar el startIdx como parámetro al create dataset
+
     val input: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
     val labels: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
 
@@ -108,7 +112,6 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
   private def createDataSet(input: INDArray, labels: INDArray, currMiniBatchSize: Int, idx: Int): Unit = {
     if (idx < currMiniBatchSize) {
 
-
       val startIdx = keys.removeFirst()
       val currMiniBatchNumberOfElements = offsetsAndSize.get(startIdx)
 
@@ -117,9 +120,9 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
       // new code
       if (startIdx < values.length) {
         val firstLine = values.get(startIdx).split(",")
-        val secondIdx = startIdx + 1
+        val nextIdx = startIdx + 1
         val c = 0
-        fillArrays(input, labels, firstLine, idx, secondIdx, endIdx, c)
+        fillArrays(input, labels, firstLine, idx, nextIdx, endIdx, c)
         createDataSet(input, labels, currMiniBatchSize, idx + 1)
       }
     }
