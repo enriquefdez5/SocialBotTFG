@@ -20,7 +20,7 @@ class PostCommand extends Logging with ActionCommandTrait with NeuralNetworkTrai
     val tweetText: String = prepareText(twitterUsername, nCharactersToSample)
     // Post
     logger.debug("Tweet posted: " + tweetText)
-//    postTweet(tweetText, conf)
+    postTweet(tweetText, conf)
   }
 
 }

@@ -3,6 +3,7 @@
 /logs/
 data(manual)/
 data(generated)/
+models/
 #data(manual)/external/datasetTexto.txt
 MvnAIBehaviour.iml
 scalastyle_config.xml

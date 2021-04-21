@@ -39,9 +39,6 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
     val twitterUsernameMsg: String = "Type in twitter username to imitate"
     val twitterUsername: String = askForTwitterUsername(conf, twitterUsernameMsg)
 
-
-    val twitterWhereToPostMsg: String = "Type in twitter username where actions will be executed"
-    val twitterWhereToPost: String = askForTwitterUsername(conf, twitterWhereToPostMsg)
     // Loop for generating and executing actions
     val idx = 0
     val loopLimit = 20
@@ -66,7 +63,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
     val sameHourCount: Int = 0
     val followedPostActionsCount: Int = 0
 
-    val actionExecutionData: ActionExecutionData = ActionExecutionData(twitterUsername, twitterWhereToPost, sameHourCount,
+    val actionExecutionData: ActionExecutionData = ActionExecutionData(twitterUsername, sameHourCount,
       meanActionsPerHour, followedPostActionsCount, maxFollowedPostActions)
     loop(conf, idx, loopLimit, lastTypeAndDateAction, actionExecutionData)
   }
@@ -85,9 +82,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
                    actionExecutionData: ActionExecutionData): Unit = {
     if (idx < loopLimit) {
       val lastTweet = getLastTweet(conf, idx,
-                                   actionExecutionData.twitterUsername,
-                                   actionExecutionData.twitterUsernameWhereToPost)
-
+                                   actionExecutionData.twitterUsername)
       // se actualiza con la app.
       val newTypeAndDateAction: NNActionItem = generateNextAction(actionExecutionData.twitterUsername,
                                                                   actionExecutionData.followedPostActionsCount,
@@ -96,11 +91,6 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
       val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
 
-      logger.debug("-----------------------------")
-      logger.debug("Generated action type: " + newTypeAndDateAction.action.toString)
-      logger.debug("Generated action day of week: " + newTypeAndDateAction.dayOfWeek.toString)
-      logger.debug("Generated action hour of day: " + newTypeAndDateAction.hourOfDay.toString)
-      logger.debug("-----------------------------")
       // Action at same hour
       if (isAtSameHour) {
         // Another action at same hour can be done
@@ -108,13 +98,13 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
           executeAction(actionExecutionData.twitterUsername, newTypeAndDateAction, conf)
           if (isPostAction) {
             loop(conf, idx + 1, loopLimit, lastTypeAndDate,
-              ActionExecutionData(actionExecutionData.twitterUsername, actionExecutionData.twitterUsernameWhereToPost,
+              ActionExecutionData(actionExecutionData.twitterUsername,
                 actionExecutionData.sameHourCount + 1, actionExecutionData.meanActionsPerHour, actionExecutionData
                   .followedPostActionsCount + 1, actionExecutionData.maxFollowedPostActions))
           }
           else {
             loop(conf, idx + 1, loopLimit, lastTypeAndDate,
-              ActionExecutionData(actionExecutionData.twitterUsername, actionExecutionData.twitterUsernameWhereToPost,
+              ActionExecutionData(actionExecutionData.twitterUsername,
                 actionExecutionData.sameHourCount + 1, actionExecutionData.meanActionsPerHour, 0, actionExecutionData
                   .maxFollowedPostActions))
           }
@@ -123,7 +113,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
           logger.debug("No more actions can be done at the generated hour")
           waitForNextHour()
           loop(conf, idx, loopLimit, newTypeAndDateAction,
-            ActionExecutionData(actionExecutionData.twitterUsername, actionExecutionData.twitterUsernameWhereToPost,
+            ActionExecutionData(actionExecutionData.twitterUsername,
             actionExecutionData.sameHourCount, actionExecutionData.meanActionsPerHour, actionExecutionData
               .followedPostActionsCount, actionExecutionData.maxFollowedPostActions))
         }
@@ -133,13 +123,13 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
         executeAction(actionExecutionData.twitterUsername, newTypeAndDateAction, conf)
         if (isPostAction) {
           loop(conf, idx + 1, loopLimit, lastTypeAndDate,
-            ActionExecutionData(actionExecutionData.twitterUsername, actionExecutionData.twitterUsernameWhereToPost,
+            ActionExecutionData(actionExecutionData.twitterUsername,
               1, actionExecutionData.meanActionsPerHour,
               actionExecutionData.followedPostActionsCount + 1, actionExecutionData.maxFollowedPostActions))
         }
         else {
           loop(conf, idx + 1, loopLimit, lastTypeAndDate,
-            ActionExecutionData(actionExecutionData.twitterUsername, actionExecutionData.twitterUsernameWhereToPost,
+            ActionExecutionData(actionExecutionData.twitterUsername,
               1, actionExecutionData.meanActionsPerHour, 0, actionExecutionData.maxFollowedPostActions))
         }
       }
@@ -154,6 +144,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
    */
   private def executeAction(twitterUsername: String, typeAndDate: NNActionItem, conf: ConfigRun): Unit = {
     val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)
+    logger.debug("Next action will be executed at: " + date.toString)
     val now = getCalendarInstance.getTime
     if (waitForDate(date, now)) {
       typeAndDate.action.execute(twitterUsername, conf)

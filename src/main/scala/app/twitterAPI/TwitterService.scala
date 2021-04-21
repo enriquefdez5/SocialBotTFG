@@ -54,10 +54,8 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
    * @param userName, String. It is the username for the user tweets will be collected.
    * @return Seq[StatusImpl]. Seq of StatusImpl containing the last five tweets the user posted.
    */
-  def getLastTweet(conf: ConfigRun, idx: Int,
-                   twitterUsername: String, twitterUsernameWhereToPost: String): Seq[StatusImpl] = {
+  def getLastTweet(conf: ConfigRun, idx: Int, twitterUsername: String): Seq[StatusImpl] = {
     checkNotEmptyString(twitterUsername)
-    checkNotEmptyString(twitterUsernameWhereToPost)
 
 
     val pageInit = 1
@@ -70,7 +68,7 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
       statusesToStatusImpl(tweets)
     }
     else {
-      val tweets: Seq[Status] = twitter.getUserTimeline(twitterUsernameWhereToPost, page).toSeq
+      val tweets: Seq[Status] = twitter.getHomeTimeline(page).toSeq
       statusesToStatusImpl(tweets)
     }
   }
@@ -105,11 +103,16 @@ object TwitterService extends Logging with TwitterClientTrait with PropertiesRea
     checkNotNegativeInt(pageInit)
     checkNotEmptyString(userName)
 
-    if (tweets.size < getProperties.getProperty("maxNumberTweetsAllowed").toInt) {
+    if (tweets.size < getProperties.getProperty("maxNumberTweetsAllowed").toInt ) {
       val page = new Paging(pageInit, getProperties.getProperty("gatheringTweetsPageSize").toInt)
       val newTweets: Seq[Status] = twitter.getUserTimeline(userName, page).toSeq
       logger.debug(s"Gathered ${newTweets.size()} tweets")
-      gatherTweets(twitter, pageInit + 1, userName, tweets ++ newTweets)
+      if (newTweets.length != 0) {
+        gatherTweets(twitter, pageInit + 1, userName, tweets ++ newTweets)
+      }
+      else {
+        tweets
+      }
     }
     else {
       checkNotEmptySeq(tweets)

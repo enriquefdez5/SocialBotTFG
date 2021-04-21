@@ -50,9 +50,6 @@ NeuralNetworkTrainingTrait {
     val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(getProperties)
 
     // Reading data and creating training and test iterators
-//    val dataSetPath: String = "/data(generated)/" + twitterUsername + ".csv"
-//    val data: String = IOUtils.toString(new FileInputStream(dataSetPath), "UTF-8")
-//    val splitData = data.split(getSplitSymbol)
     val splitData = getData(twitterUsername, false)
 
     val splitSize: Int = (splitData.length * 80) / 100
@@ -208,6 +205,7 @@ NeuralNetworkTrainingTrait {
   private def configureNetwork(confItem: NeuralNetworkConfItem, nIn: Int, nOut: Int): MultiLayerConfiguration = {
     val nnConf = new NeuralNetConfiguration.Builder()
       .seed(confItem.seed)
+      .l2(0.0001)
       .weightInit(confItem.weightInit)
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(new Adam(confItem.learningRate))
