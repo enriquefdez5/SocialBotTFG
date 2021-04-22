@@ -21,7 +21,7 @@ import neuralNetworks.NeuralNetworkTrainingTrait
 
 // twitterAPI package
 import app.twitterAPI.TwitterService.{getLastTweet, getTweets}
-import app.twitterAPI.TwitterServiceOperations.{obtainMaxActionsPerHour, getMeanActionsPerHour, getMaxFollowedPostActions}
+import app.twitterAPI.TwitterServiceOperations.{getMeanActionsPerHour, getMaxFollowedPostActions}
 
 // utilities package
 import utilities.dates.DatesUtilTrait
@@ -47,6 +47,10 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
 
     // Get csv tweets and remove header
     val csvTweets: util.ArrayList[String] = readCSVFile("./data(manual)/" + twitterUsername + ".csv")
+    if (csvTweets.size() == 0) {
+      logger.info("This user has 0 tweets. System will shut dowm.")
+      System.exit(1)
+    }
     csvTweets.remove(0)
 
     // Mean and max actions per hour

@@ -34,7 +34,7 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilitiesTrait with 
 
     val twitterConf = new ConfigRun(args)
 
-    val twitterUsernameMsg: String = "Type int twitter username to imitate"
+    val twitterUsernameMsg: String = "Type in twitter username to imitate"
     val twitterUsername = askForTwitterUsername(twitterConf, twitterUsernameMsg)
 
 
