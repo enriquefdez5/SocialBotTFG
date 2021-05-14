@@ -3,11 +3,11 @@ package app.twitterAPI
 import twitter4j.{Twitter, TwitterFactory}
 import twitter4j.conf.ConfigurationBuilder
 
+/** Trait for getting a Twitter client instance. */
 trait TwitterClientTrait {
 
   /**
-   * Function used for creating a twitter client instance
-   * @return Twitter, a twitter client instance
+   * @return Twitter client instance
    */
   def getTwitterClient(conf: ConfigRun): Twitter = {
     val cb = new ConfigurationBuilder()

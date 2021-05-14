@@ -1,36 +1,28 @@
 package model
 
-// java imports
 import java.util.Random
+import org.apache.logging.log4j.scala.Logging
 
-import model.exceptions.{AIException, IncorrectCommandActionException}
-import utilities.validations.ValidationsUtilTrait
-
-// Command imports
 import app.twitterAPI.commandActions.{ActionCommandTrait, PostCommand, ReplyCommand, RtCommand}
 
-// model imports
+import model.exceptions.{AIException, IncorrectCommandActionException}
 import model.Action.{POST, REPLY, RT, getActionFromIntValue}
 import model.Action.Action
 
-// logging imports
-import org.apache.logging.log4j.scala.Logging
-
-// dates imports
 import utilities.dates.DatesUtilTrait
+import utilities.validations.ValidationsUtilTrait
 
-/**
- * Case class that represents an action to be executed on Twitter the dayOfWeek day at hourOfDay hour. The action to
- * be executed will be from an Action Type.
- * @param dayOfWeek, Int. Int value representing the day of a week when the action must be executed.
- * 0 for Saturday and 6 for Friday
- * @param hourOfDay, Int. Int value representing the hour of a day when the action must be executed.
- * 0 for 00:00 and 23 for 23:00.
- * @param action, Action. Action enumeration value representing the type of action that must be executed.
- * 1 for POST, 2 for RT and 3 for REPLY
+
+/** Case class that represents an action to be executed on Twitter.
+ *
+ * @constructor Create a new NNActionItem with day of week, hour of day and action command.
+ * @param dayOfWeek Day of week of the action. Must be an integer between 1 and 7
+ * @param hourOfDay Hour of day of the action. Must be an integer between 0 and 23.
+ * @param action Action command from the type of the action.
  */
 case class NNActionItem(dayOfWeek: Int, hourOfDay: Int, action: ActionCommandTrait)
 
+/** Object with functions to work with action items. */
 object NNActionItem extends Logging with ValidationsUtilTrait with DatesUtilTrait {
 
   val maxDayValue = 7
@@ -40,18 +32,17 @@ object NNActionItem extends Logging with ValidationsUtilTrait with DatesUtilTrai
   val maxActionValue = 3
   val minActionValue = 1
 
-
-  /**
-   * Function that builds a TypeAndDate object from a given day, hour and action and considering followed post actions
-   * @param day, Int. Value of the day when the action will be executed. Must be between 0 and 6 inclusive.
-   * @param hour, Int. Value of the hour when the action will be executed. Must be between 0 and 23 inclusive.
-   * @param actionValue, Int. Value of the type of action that will be executed. Must be between 1 and 3 inclusive.
-   * @param followedPostActionsCount, Int. Count of followed post actions.
-   * @param maxFollowedPostActions, Int. Number of maximum followed post actions.
-   * @return TypeAndDate. Object containing the information for the next action to be executed.
+  /** Get an action item from date parameters.
+   *
+   * @param day Day of the action.
+   * @param hour Hour of the action
+   * @param actionValue Type of the action.
+   * @param followedPostActionsCount Followed post actions count.
+   * @param maxFollowedPostActions Maximum followed post actions.
+   * @return Action item.
    */
-  def buildTypeAndDateFromDayHourAndAction(day: Int, hour: Int, actionValue: Int,
-                                           followedPostActionsCount: Int, maxFollowedPostActions: Int): NNActionItem = {
+  def buildNNActionItemFromDayHourAndAction(day: Int, hour: Int, actionValue: Int,
+                                            followedPostActionsCount: Int, maxFollowedPostActions: Int): NNActionItem = {
     try {
       checkValue(hour, max = maxHourValue)
       checkValue(day, max = maxDayValue)
@@ -60,9 +51,8 @@ object NNActionItem extends Logging with ValidationsUtilTrait with DatesUtilTrai
       checkNotNegativeInt(maxFollowedPostActions)
     }
     catch {
-      case exception: AIException => {
-        logger.info(exception.getMessage)
-      }
+      case exception: AIException =>
+        logger.error(exception.getMessage)
     }
     if (followedPostActionsCount >= maxFollowedPostActions) {
       val max = 3
@@ -90,42 +80,60 @@ object NNActionItem extends Logging with ValidationsUtilTrait with DatesUtilTrai
     }
   }
 
-  /**
-   * Function that converts a given tweet as a Post object into a TypeAndDate object.
-   * @param lastTweet, Post. Tweet given as a Post object which will be converted into a TypeAndDate object with the
-   * day and hour of the given tweet and the action the tweet is.
-   * @return TypeAndDate. The TypeAndDate built object.
+  /** Get an action item from a Tweet.
+   *
+   * @param lastTweet Last tweet from the user.
+   * @return Action item.
    */
-  def postToTypeAndDate(lastTweet: StatusImpl): NNActionItem = {
+  def statusToNNActionItem(lastTweet: StatusImpl): NNActionItem = {
     val calendar = getCalendarInstance
     calendar.setTime(lastTweet.createdAtDate)
     val day: Int = getCalendarDay(calendar)
     val hour: Int = getCalendarHour(calendar)
-    val action: Action = getActionFromPostObject(lastTweet)
+    val action: Action = getActionFromStatus(lastTweet)
     NNActionItem(day, hour, createCommandAction(action))
   }
 
-
-  /**
-   * Function that returns an action type as an Integer based on Post received as param.
-   * @param post, StatusImpl object to identify type of action from Twitter.
-   * @return an Int object that represents the action type.
+  /** Get an action item from a string in a type and date format
+   *
+   * @param string String input from csv with type and date content.
+   * @return ActionItem containing day, hour and type of action.
    */
-  private def getActionFromPostObject(post: StatusImpl): Action = {
-    // If it is a rt, returns rt value that is 2
+  def stringToNNActionItem(string: String): NNActionItem = {
+    try {
+      val splitString = string.split(",")
+      NNActionItem(splitString(0).toInt, splitString(1).toInt, createCommandAction(getActionFromString(splitString(2))))
+    }
+    catch {
+      case _: Exception =>
+        logger.error("Wrong input string format")
+        System.exit(1)
+        NNActionItem(0, 0, new PostCommand)
+    }
+  }
+
+  private def getActionFromString(string: String): Action = {
+    if (string == "1") {
+      POST
+    }
+    else if (string == "2") {
+      RT
+    }
+    else {
+      REPLY
+    }
+  }
+
+  private def getActionFromStatus(post: StatusImpl): Action = {
     if (post.currentUserRtId == 1) {
       RT
     }
-    // If it is a reply, returns reply value that is 3
     else if (post.getInReplyToUserId == 1) {
       REPLY
     }
-    // If it is not a reply or rt, it is a post, so returns the post value that is 1
     else {
       POST
     }
   }
-
-
 }
 

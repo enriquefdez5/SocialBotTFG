@@ -4,7 +4,17 @@ import java.util.Date
 
 import twitter4j._
 
-case class StatusImpl(text: String, createdAt: Date, rtUserId: Long, replyStatusId: Long, rt: Status  )
+/** Case class that contains tweets information. It extends Status object from Twitter4j.
+ *
+ * @constructor Create a new StatusImpl with text, created at date, id of the user whose tweet has been retweeted,
+ *              retweeted tweet and id of the replied tweet.
+ * @param text Text content of the tweet.
+ * @param createdAt Date when it was created.
+ * @param rtUserId User identifier who was retweeted.
+ * @param replyStatusId Tweet replied identifier.
+ * @param rt Tweet retweeted.
+ */
+case class StatusImpl(text: String, createdAt: Date, rtUserId: Long, replyStatusId: Long, rt: Status)
   extends Status {
     val createdAtDate: Date = createdAt
     val textContent: String = text
@@ -12,79 +22,131 @@ case class StatusImpl(text: String, createdAt: Date, rtUserId: Long, replyStatus
     val currentUserRtId: Long = rtUserId
     val currentReplyId: Long = replyStatusId
 
+    val notImplementedError = "Not implemented yet"
 
-
+    /**
+     * @return Tweet created at date.
+     */
     override def getCreatedAt: Date = createdAtDate
 
-    override def getId: Long = ???
-
+    /**
+     * @return Tweet text content.
+     */
     override def getText: String = textContent
 
-    override def getDisplayTextRangeStart: Int = ???
-
-    override def getDisplayTextRangeEnd: Int = ???
-
-    override def getSource: String = ???
-
-    override def isTruncated: Boolean = ???
-
+    /**
+     * @return replied tweet identifier.
+     */
     override def getInReplyToStatusId: Long = currentReplyId
 
+    /**
+     * @return replied user identifier.
+     */
     override def getInReplyToUserId: Long = currentReplyId
 
-    override def getInReplyToScreenName: String = ???
-
-    override def getGeoLocation: GeoLocation = ???
-
-    override def getPlace: Place = ???
-
-    override def isFavorited: Boolean = ???
-
-    override def isRetweeted: Boolean = ???
-
-    override def getFavoriteCount: Int = ???
-
-    override def getUser: twitter4j.User = ???
-
+    /**
+     * @return true if this tweet is a retweet.
+     */
     override def isRetweet: Boolean = rtStatus != null
 
+    /**
+     * @return retweeted tweet.
+     */
     override def getRetweetedStatus: Status = rtStatus
 
-    override def getContributors: Array[Long] = ???
-
-    override def getRetweetCount: Int = ???
-
-    override def isRetweetedByMe: Boolean = ???
-
+    /**
+     * @return current user retweet id.
+     */
     override def getCurrentUserRetweetId: Long = currentUserRtId
 
-    override def isPossiblySensitive: Boolean = ???
+    override def getId: Long =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getLang: String = ???
+    override def getDisplayTextRangeStart: Int =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getScopes: Scopes = ???
+    override def getDisplayTextRangeEnd: Int =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getWithheldInCountries: Array[String] = ???
+    override def getSource: String =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getQuotedStatusId: Long = ???
+    override def isTruncated: Boolean =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getQuotedStatus: Status = ???
+    override def getInReplyToScreenName: String =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getQuotedStatusPermalink: URLEntity = ???
+    override def getGeoLocation: GeoLocation =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getUserMentionEntities: Array[UserMentionEntity] = ???
+    override def getPlace: Place =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getURLEntities: Array[URLEntity] = ???
+    override def isFavorited: Boolean =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getHashtagEntities: Array[HashtagEntity] = ???
+    override def isRetweeted: Boolean =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getMediaEntities: Array[MediaEntity] = ???
+    override def getFavoriteCount: Int =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getSymbolEntities: Array[SymbolEntity] = ???
+    override def getUser: twitter4j.User =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getRateLimitStatus: RateLimitStatus = ???
+    override def getContributors: Array[Long] =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def getAccessLevel: Int = ???
+    override def getRetweetCount: Int =
+        throw new UnsupportedOperationException(notImplementedError)
 
-    override def compareTo(o: Status): Int = ???
+    override def isRetweetedByMe: Boolean =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def isPossiblySensitive: Boolean =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getLang: String =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getScopes: Scopes =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getWithheldInCountries: Array[String] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getQuotedStatusId: Long =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getQuotedStatus: Status =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getQuotedStatusPermalink: URLEntity =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getUserMentionEntities: Array[UserMentionEntity] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getURLEntities: Array[URLEntity] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getHashtagEntities: Array[HashtagEntity] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getMediaEntities: Array[MediaEntity] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getSymbolEntities: Array[SymbolEntity] =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getRateLimitStatus: RateLimitStatus =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def getAccessLevel: Int =
+        throw new UnsupportedOperationException(notImplementedError)
+
+    override def compareTo(o: Status): Int =
+        throw new UnsupportedOperationException(notImplementedError)
+
 }

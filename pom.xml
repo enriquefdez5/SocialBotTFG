@@ -108,13 +108,57 @@
 
         <plugins>
 
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-site-plugin</artifactId>-->
+<!--                <version>3.0</version>-->
+<!--                <configuration>-->
+<!--                    <reportPlugins>-->
+<!--                        <plugin>-->
+<!--                            <artifactId>maven-project-info-reports-plugin</artifactId>-->
+<!--                            <version>2.2</version>-->
+<!--                        </plugin>-->
+<!--                        <plugin>-->
+<!--                            <groupId>net.alchim31.maven</groupId>-->
+<!--                            <artifactId>scala-maven-plugin</artifactId>-->
+<!--                            <version>4.5.1</version>-->
+<!--                            <configuration>-->
+<!--                                <jvmArgs>-->
+<!--                                    <jvmArg>-Xms64m</jvmArg>-->
+<!--                                    <jvmArg>-Xmx1024m</jvmArg>-->
+<!--                                </jvmArgs>-->
+<!--                            </configuration>-->
+<!--                        </plugin>-->
+<!--                    </reportPlugins>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
 
             <!-- Scala maven plugin for compiling -->
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>4.3.1</version>
+            <!-- maybe remove -->
+<!--                <configuration>-->
+<!--                    <jvmArgs>-->
+<!--                        <jvmArg>-Xms64m</jvmArg>-->
+<!--                        <jvmArg>-Xmx1024m</jvmArg>-->
+<!--                    </jvmArgs>-->
+<!--                </configuration>-->
+                <!-- maybe remove -->
                 <executions>
+<!--                    <execution>-->
+<!--                        <id>Scaladoc</id>-->
+<!--                        <goals>-->
+<!--                            <goal>doc</goal>-->
+<!--                        </goals>-->
+<!--                        <phase>prepare-package</phase>-->
+<!--                        <configuration>-->
+<!--                            <args>-->
+<!--                                <arg>-no-link-warnings</arg>-->
+<!--                            </args>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
                     <execution>
                         <goals>
                             <goal>compile</goal>
@@ -171,6 +215,12 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>MainManager</mainClass>
+                        </manifest>
+                    </archive>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>

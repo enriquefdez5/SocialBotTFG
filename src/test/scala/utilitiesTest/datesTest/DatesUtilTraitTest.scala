@@ -1,11 +1,11 @@
 package utilitiesTest.datesTest
 
 import java.util
-import java.util.Calendar
+import java.util.{Calendar, Date}
 
 import model.StatusImpl
 import model.NNActionItem.{maxDayValue, maxHourValue, minDayValue, minHourValue}
-import model.exceptions.{EmptyStringException, WrongParamValueException}
+import model.exceptions.{EmptyStringException, IncorrectSizeListException, WrongParamValueException}
 import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertTrue}
 import org.junit.jupiter.api.Test
 import utilities.dates.DatesUtilTrait
@@ -14,9 +14,58 @@ class DatesUtilTraitTest extends DatesUtilTrait {
 
   val wrongParamValueExceptionMessage = "Param value is not valid"
   val emptyStringExceptionMessage = "The string can not be empty or blank"
+  val emptyListExceptionMessage = "List can not be empty"
+
+  val maxMonthValue = 11
+  val minMonthValue = 1
+  val maxYearValue = 2021
+  val minYearValue = 0
+
 
   val postSeq: Seq[StatusImpl] = createTestingPostSeq
+  val sameDateSeq: Seq[StatusImpl] = createTestingSameDateSeq
   val postArrayList: util.ArrayList[String] = createTestingStringArrayList
+  val sameDateArrayList: util.ArrayList[String] = createTestingSameDateArrayList
+
+  @Test
+  def getOldestHourTest(): Unit = {
+    // Data is older than year 2001
+    val calendar: Calendar = getCalendarInstance
+    val year = 2001
+    calendar.set(Calendar.YEAR, year)
+    assertEquals(true, calendar.getTime.after(getOldestHour))
+  }
+
+  @Test
+  def groupTwitterActionsByDatesTest(): Unit = {
+    // Empty seq
+    val emptySeq: Seq[StatusImpl] = Seq[StatusImpl]()
+    try {
+      groupTwitterActionsByDates(emptySeq, postArrayList)
+    }
+    catch {
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg )
+    }
+
+    // Empty list
+    val emptyList: util.ArrayList[String] = new util.ArrayList[String]()
+    try {
+      groupTwitterActionsByDates(postSeq, emptyList)
+    }
+    catch {
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg )
+    }
+
+    // Different dates post
+    val grouped = groupTwitterActionsByDates(postSeq, postArrayList)
+    val differentDatesPosts = 2
+    assertEquals(differentDatesPosts, grouped.size )
+
+    // Same group
+    val sameDateGroup = groupTwitterActionsByDates(sameDateSeq, sameDateArrayList)
+    val sameDatesPost = 1
+    assertEquals(sameDatesPost, sameDateGroup.size)
+  }
 
   @Test
   def buildDateTest(): Unit = {
@@ -41,14 +90,77 @@ class DatesUtilTraitTest extends DatesUtilTrait {
         assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
       // Greater than 23 hour of day value
-    try { buildDate(minDayValue, maxDayValue+1) }
+    try { buildDate(minDayValue, maxHourValue+1) }
     catch {
       case e: WrongParamValueException =>
         assertEquals(wrongParamValueExceptionMessage, e.msg)
     }
+    // Invalid month
+    // Less than min
+    try {
+      buildDate(minDayValue, minHourValue, minMonthValue-1, maxYearValue)
+    }
+    catch {
+      case e: WrongParamValueException =>
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
+    }
+    // Greater than max
+    try {
+      buildDate(minDayValue, minHourValue, maxMonthValue+1, maxYearValue)
+    }
+    catch {
+      case e: WrongParamValueException =>
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
+    }
+    // Invalid year
+    // Less than min
+    try {
+      buildDate(minDayValue, minHourValue, minMonthValue, minYearValue-1)
+    }
+    catch {
+      case e: WrongParamValueException =>
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
+    }
+    // Greater than max
+    try {
+      buildDate(minDayValue, minHourValue, minMonthValue, maxYearValue+1)
+    }
+    catch {
+      case e: WrongParamValueException =>
+        assertEquals(wrongParamValueExceptionMessage, e.msg)
+    }
+
     // Valid day of week and hour of day
-    val builtDate = buildDate(0, 0)
+    val builtDate = buildDate(minDayValue, minHourValue)
     assertNotNull(builtDate)
+
+    // Valid month and year
+    val completeBuiltDate = buildDate(minDayValue, minHourValue, minMonthValue, minYearValue )
+    assertNotNull(completeBuiltDate)
+
+  }
+
+  @Test
+  def waitForNextActionTest(): Unit = {
+    // waiting for a minute
+    val startTime = System.currentTimeMillis()
+    waitForNextAction()
+    val endTime = System.currentTimeMillis()
+    val oneMinute = 60000
+    assertTrue((endTime - startTime) > oneMinute)
+  }
+
+  @Test
+  def waitForDateTest(): Unit = {
+    val calendar = getCalendarInstance
+    calendar.add(Calendar.MINUTE, 1)
+    val dateToWaitFor = calendar.getTime
+
+    val startTime = System.currentTimeMillis()
+    waitForDate(dateToWaitFor, new Date())
+    val endTime = System.currentTimeMillis()
+    val oneMinute = 60000
+    assertTrue((endTime - startTime) > oneMinute)
   }
 
   @Test
@@ -225,17 +337,37 @@ class DatesUtilTraitTest extends DatesUtilTrait {
     Seq(post1, post2, post3)
   }
 
+  private def createTestingSameDateSeq: Seq[StatusImpl] = {
+    val year = 2020
+    val month = 1
+    val day = 1
+    val hour = 10
+    val minute = 0
+    val second = 0
+    val calendar = getCalendarInstance
+    calendar.set(year, month, day, hour, minute, second)
+    val date1 = calendar.getTime
+    calendar.set(year, month, day, hour, minute, second)
+    val date2 = calendar.getTime
+
+    val idNonValue = 0
+    val post1 = StatusImpl("Post1", date1, idNonValue, idNonValue, null)
+    val post2 = StatusImpl("Post2", date2, idNonValue, idNonValue, null)
+    Seq(post1, post2)
+  }
+
   private def createTestingStringArrayList: util.ArrayList[String] = {
+    val preReplyUserString = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
     val post1 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-03\t12:00:00\tIbaiLlanos\tSkainLoL\t26\t69\t2791" +
       "\t\"buen cochazo se va notando el sueldo de caster\"\t\t\t\t\t1303310580464398336" +
-      "\thttps://twitter.com/IbaiLlanos/status/1303310580464398336\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+      "\thttps://twitter.com/IbaiLlanos/status/1303310580464398336" + preReplyUserString
     val post2 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:00:00\tIbaiLlanos\t\t65\t728\t8380\t\"Lo sabía." +
       " Lo sabía desde hace tiempo, y Jordi Cruz su ayudante.Qué hijos de puta, como se lo tenían callado." +
       "http://ver.20m.es/jibeb3\"\t\t\t\t1303307843391684609\thttps://twitter.com/IbaiLlanos/status/1303307843391684609" +
-      "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+      preReplyUserString
     val post3 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:0:00\tIbaiLlanos\tjxtamartin\t53\t53\t4683\t" +
       "\"No os voy a invitar a cenar eh\"\t\t\t\t1303264091662880769\thttps://twitter.com/IbaiLlanos/status/1303264091662880769" +
-      "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+      preReplyUserString
     val arrayListToReturn = new util.ArrayList[String]()
     arrayListToReturn.add(post1)
     arrayListToReturn.add(post2)
@@ -243,10 +375,19 @@ class DatesUtilTraitTest extends DatesUtilTrait {
 
     arrayListToReturn
   }
-  @Test
-  def groupTwitterActionsByDatesTest(): Unit = {
-    val grouped = groupTwitterActionsByDates(postSeq, postArrayList)
-    val differentDatesPosts = 2
-    assertEquals(differentDatesPosts, grouped.size )
+  private def createTestingSameDateArrayList: util.ArrayList[String] = {
+    val preReplyUserString = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\treplyUser"
+    val post1 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:00:00\tIbaiLlanos\t\t65\t728\t8380\t\"Lo sabía" +
+      ".Lo sabía desde hace tiempo, y Jordi Cruz su ayudante.Qué hijos de puta, como se lo tenían callado." +
+      "http://ver.20m.es/jibeb3\"\t\t\t\t1303307843391684609\thttps://twitter.com/IbaiLlanos/status/1303307843391684609" +
+      preReplyUserString
+    val post2 = "texto pos 0\ttexto pos 1\ttexto pos 2\t2020-01-01\t10:0:00\tIbaiLlanos\tjxtamartin\t53\t53\t4683\t" +
+      "\"No os voy a invitar a cenar eh\"\t\t\t\t1303264091662880769\thttps://twitter.com/IbaiLlanos/status/1303264091662880769" +
+      preReplyUserString
+    val arrayListToReturn = new util.ArrayList[String]()
+    arrayListToReturn.add(post1)
+    arrayListToReturn.add(post2)
+
+    arrayListToReturn
   }
 }

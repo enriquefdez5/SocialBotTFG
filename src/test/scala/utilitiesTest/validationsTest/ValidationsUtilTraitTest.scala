@@ -14,7 +14,6 @@ class ValidationsUtilTraitTest extends ValidationsUtilTrait {
   @Test
   def checkActionValueTest(): Unit = {
     // Min action value
-
     val action1: Action = getActionFromIntValue(minActionValue)
     checkActionValue(action1)
     // Max action value

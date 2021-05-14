@@ -1,19 +1,137 @@
-package utilitiesTest.neuralNetworksTest
+package neuralNetworksTest
 
+import java.io.FileNotFoundException
 import java.util.Date
 
 import model.exceptions.{IncorrectSizeListException, NotExistingFileException, WrongParamValueException}
-import model.{StatusImpl, NNActionItem}
+import model.{NNActionItem, StatusImpl}
 import neuralNetworks.NeuralNetworkTrainingTrait
-import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull}
+import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertTrue}
 import org.junit.jupiter.api.Test
 
-class NeuralNetworkUtilTraitTest extends NeuralNetworkTrainingTrait {
+class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
 
   val negativeLongExceptionMessage = "Long param value can not be less than 0"
   val negativeIntExceptionMessage = "Int param value can not be less than 0"
   val emptyListExceptionMessage = "List can not be empty"
+  val fileNotFoundMessage = "File not found"
+  val fileNotFoundGetDataMessage = ".\\data(generated)\\asdadnaskjda.txt (The system cannot find the file specified)"
 
+
+  @Test
+  def getDataTest(): Unit = {
+    // File does not exist
+    try {
+      val wrongUsername = "asdadnaskjda"
+      getData(wrongUsername, true)
+    }
+    catch {
+      case exception: FileNotFoundException => assertEquals(fileNotFoundGetDataMessage, exception.getMessage)
+    }
+    // Get txt file
+    val testFile: String = "testFile"
+    assertTrue(getData(testFile, true).size > 0)
+
+    // Get csv file
+    assertTrue(getData(testFile, false).size > 0)
+  }
+
+  @Test
+  def getTotalPercentageTest(): Unit = {
+    assertEquals(totalPercentage, getTotalPercentage)
+  }
+
+  @Test
+  def getTrainingPercentageTest(): Unit = {
+    assertEquals(trainingPercentage, getTrainingPercentage)
+  }
+
+  @Test
+  def getTestPercentageTest(): Unit = {
+    assertEquals(testPercentage, getTestPercentage)
+  }
+
+  @Test
+  def getSplitSymbolTest(): Unit = {
+    assertEquals(splitSymbol, getSplitSymbol)
+  }
+
+  @Test
+  def createPathAndSaveNetworkTest(): Unit = {
+    val network = loadNetwork("./models/testModelAction.zip")
+    try {
+      createPathAndSaveNetwork(network, "/Noexistelaruta/notARealPath", "Action")
+    }
+    catch {
+      case exception: FileNotFoundException =>
+        val msg = ".\\models\\Noexistelaruta\\notARealPathActionzip (The system cannot find the path specified)"
+        assertEquals(msg, exception.getMessage)
+    }
+
+    val goodPath = "./goodPath"
+    createPathAndSaveNetwork(network, goodPath, "Text")
+    assertNotNull(loadNetwork(goodPath))
+  }
+
+  @Test
+  def getTrainingDataTest(): Unit = {
+    // empty list
+    val firstIndex = 0
+    val splitSize = 70
+    try {
+      getTrainingData(new Array[String](firstIndex), splitSize)
+    }
+    catch {
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
+    }
+
+    // data split
+      // Positive split size
+    val allData: Array[String] = new Array[String](3)
+    allData(0) = "Primer valor"
+    allData(1) = "Segundo valor"
+    allData(2) = "Tercer valor"
+    val trainingData = getTrainingData(allData, 1)
+    assertEquals(1, trainingData.size)
+
+      // Negative split value
+    try {
+      getTrainingData(allData, -1)
+    }
+    catch {
+      case exception: WrongParamValueException =>
+        assertEquals(negativeIntExceptionMessage, exception.msg)
+    }
+  }
+
+  @Test
+  def getTestDataTest(): Unit = {
+    // empty list
+    try {
+      getTestData(new Array[String](0), 70)
+    }
+    catch {
+      case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
+    }
+
+    // data split
+    // Positive split size
+    val allData: Array[String] = new Array[String](3)
+    allData(0) = "Primer valor"
+    allData(1) = "Segundo valor"
+    allData(2) = "Tercer valor"
+    val testData = getTestData(allData, 1)
+    assertEquals(2, testData.size)
+
+    // Negative split value
+    try {
+      getTestData(allData, -1)
+    }
+    catch {
+      case exception: WrongParamValueException =>
+        assertEquals(negativeIntExceptionMessage, exception.msg)
+    }
+  }
 
   @Test
   def prepareTextTest(): Unit = {

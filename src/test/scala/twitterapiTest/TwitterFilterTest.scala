@@ -46,11 +46,11 @@ class TwitterFilterTest extends Logging with TwitterFilterTrait {
   }
 
   @Test
-  def markTweetsTest(): Unit = {
+  def addLineBreakTest(): Unit = {
     // empty list
     val emptySeq: Seq[String] = Seq[String]()
     try {
-      markTweets(emptySeq)
+      addLineBreak(emptySeq)
     }
     catch {
       case exception: IncorrectSizeListException => assertEquals(emptyListExceptionMessage, exception.msg)
@@ -58,8 +58,9 @@ class TwitterFilterTest extends Logging with TwitterFilterTrait {
     val sentence1: String = "this is a sentence to mark"
     val sentence2: String = "this is another one"
     val seq: Seq[String] = Seq[String](sentence1, sentence2)
-    val marked = markTweets(seq)
+    val marked = addLineBreak(seq)
     assertEquals(sentence1 + "\n" + sentence2 + "\n", marked(0) + marked(1))
   }
+
 
 }

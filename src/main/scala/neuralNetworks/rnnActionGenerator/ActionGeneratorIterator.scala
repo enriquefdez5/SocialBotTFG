@@ -2,44 +2,44 @@ package neuralNetworks.rnnActionGenerator
 
 import java.util
 import java.util.{Collections, Random}
+import scala.annotation.tailrec
+import scala.collection.JavaConversions._
 
-import org.apache.logging.log4j.scala.Logging
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
+
 import utilities.validations.ValidationsUtilTrait
 
-import scala.annotation.tailrec
 
-import scala.collection.JavaConversions._
-
+/** Class to iterate over training data and create datasets.
+ *
+ * @constructor Create a new action generator iterator with the given data, minibatch size and example length.
+ * @param miniBatchSize Size of the minibatch.
+ * @param exampleLength Lenght of each example created.
+ * @param data Data to iterate over.
+ */
 class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
-                              strings: Array[String]) extends DataSetIterator with Logging with ValidationsUtilTrait {
+                              data: Array[String]) extends DataSetIterator with ValidationsUtilTrait {
 
-  // Get values from strings array parameter
   val values: util.List[String] = getValues(0, new util.ArrayList[String]())
 
-  // Get offsets and sizes from the computed values variable
   val offsetsAndSize: util.TreeMap[Int, Int] = new util.TreeMap[Int, Int]()
   initializeOffsets(0, 0, offsetsAndSize)
 
-  // Get keys for every split from values variable
   val keys: util.LinkedList[Int] = new util.LinkedList[Int]()
   getKeys(keys)
 
-  // Not implemented error msg
   val notImplementedError = "Not implemented yet"
 
-  /**
-   * Private function for initializing values variable with the content from the given list of tweets.
-   */
+
   @tailrec
   private def getValues(idx: Int, values: util.ArrayList[String]): util.List[String] = {
-    if (idx < strings.length) {
-      if (strings(idx).length > 2) {
-        values.add(strings(idx))
+    if (idx < data.length) {
+      if (data(idx).length > 2) {
+        values.add(data(idx))
       }
       getValues(idx + 1, values)
     }
@@ -49,13 +49,10 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
   }
 
 
-  /**
-   * Private function that initialize the offsets of the iterator. It also shuffles the keys linked list.
-   */
   @tailrec
   private def initializeOffsets(idx: Int, count: Int, map: util.TreeMap[Int, Int]): util.TreeMap[Int, Int] = {
-    if (idx < strings.size) {
-      if (strings(idx) == "-1") {
+    if (idx < data.length) {
+      if (data(idx) == "-1") {
         if (idx != 0) {
           map.put(idx-count, count)
           initializeOffsets(idx + 1, 1, map)
@@ -67,57 +64,38 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     else { map }
   }
 
-  /**
-   * Private function to get and shuffle keys of offsetsAndSize
-   * @return
-   */
   private def getKeys(keys: util.LinkedList[Int]): util.LinkedList[Int] = {
     val keyset = new util.LinkedList[Int](offsetsAndSize.keySet())
-    keyset.foreach(keys.add(_))
+    keyset.foreach( set => keys.add(set))
     val seed = 12345
     Collections.shuffle(keys, new Random(seed))
     keys
   }
 
-  /**
-   * Override function for getting next dataset with the given minibatch size.
-   * @param num, Int. Size of the next dataset.
-   * @return Dataset. Dataset built with the given size.
+  /** Get next dataset from training data.
+   *
+   * @param num Size of next dataset.
+   * @return Dataset.
    */
   override def next(num: Int): DataSet = {
     checkNotEmptyLinkedList(keys)
     val currMiniBatchSize = Math.min(num, keys.size())
 
-//    TODO keys remove first here.
-//    pasar offsets(keysFirst) en lugar de exampleLength
-//    pasar el startIdx como parámetro al create dataset
-
     val input: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
     val labels: INDArray = Nd4j.create(Array[Long](currMiniBatchSize+1, 3, exampleLength), 'f')
 
     val idx = 0
-
     createDataSet(input, labels, currMiniBatchSize, idx)
     new DataSet(input, labels)
   }
 
-  /**
-   * Private tailrec function for creating a dataset.
-   * @param input, INDArray. INDArray to fill with input values.
-   * @param labels, INDArray. INDArray to fill with labels values.
-   * @param currMiniBatchSize, Int. Mini batch size for input and labels size.
-   * @param idx, Int. Index value for stopping the tailrec loop.
-   */
   @tailrec
   private def createDataSet(input: INDArray, labels: INDArray, currMiniBatchSize: Int, idx: Int): Unit = {
     if (idx < currMiniBatchSize) {
-
       val startIdx = keys.removeFirst()
       val currMiniBatchNumberOfElements = offsetsAndSize.get(startIdx)
-
       val endIdx = startIdx + currMiniBatchNumberOfElements
 
-      // new code
       if (startIdx < values.length) {
         val firstLine = values.get(startIdx).split(",")
         val nextIdx = startIdx + 1
@@ -128,16 +106,6 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
     }
   }
 
-  /**
-   * Private function that fills in the input and labels array with the characters content.
-   * @param input, INDArray. INDArray to fill with input values.
-   * @param labels, INDArray. INDArray to fill with labels values.
-   * @param line, Array[String]. Array of strings that contains the content to be added to the INDArray..
-   * @param idx, Int. Index value to specify in which position the line content will be added.
-   * @param secondIdx, Int. Another index to specify the next line.
-   * @param endIdx, Int. Last index that represents the end of the tailrec loop.
-   * @param c, Int. Value for building the INDArrays.
-   */
   @tailrec
   private def fillArrays(input: INDArray, labels: INDArray, line: Array[String],
                          idx: Int, secondIdx: Int, endIdx: Int, c: Int): Unit = {
@@ -154,32 +122,26 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
   }
 
   /**
-   * Override function that gives the number of input columns of the iterator.
-   * @return Int. The number of input columns.
+   * @return The number of input columns.
    */
   override def inputColumns(): Int = 3
 
   /**
-   * Override function that gives the total outcomes of the iterator.
-   * @return Int. The number of total outcomes.
+   * @return The number of total outcomes.
    */
   override def totalOutcomes(): Int = 3
 
   /**
-   * Override function that returns if reset is supported.
-   * @return Boolean. True because reset is supported.
+   * @return True because reset is supported.
    */
   override def resetSupported(): Boolean = true
 
   /**
-   * Override function that returns if async is supported.
-   * @return Boolean. True because async is supported.
+   * @return True because  async is supported.
    */
   override def asyncSupported(): Boolean = true
 
-  /**
-   * Override function that resets the iterator. It clears the keys map and calls the initializeOffsets function.
-   */
+  /** Function that resets the iterator cleaning variables. */
   override def reset(): Unit = {
     keys.clear()
     offsetsAndSize.clear()
@@ -188,45 +150,36 @@ class ActionGeneratorIterator(miniBatchSize: Int, exampleLength: Int,
   }
 
   /**
-   * Override function that gets the batch size of the iterator.
-   * @return Int. Mini batch size.
+   * @return Mini batch size.
    */
   override def batch(): Int = miniBatchSize
 
   /**
-   * Override function that returns if there is a next dataset available.
-   * @return Boolean. If there is more datasets available.
+   * @return If there is more datasets available for the current training data.
    */
   override def hasNext: Boolean = keys.size() > 0
 
   /**
-   * Override function that calls the next function asking for the next dataset.
-   * @return Dataset. The next dataset available.
+   * @return The next dataset available.
    */
   override def next(): DataSet = next(miniBatchSize)
 
   /**
-   * Override function that throws an exception because its an unsupported operation.
-   * @param dataSetPreProcessor, DataSetPreProcessor.
+   * @throws UnsupportedOperationException because it is not implemented.
+   * @param dataSetPreProcessor DataSetPreProcessor.
    */
   override def setPreProcessor(dataSetPreProcessor: DataSetPreProcessor): Unit =
     throw new UnsupportedOperationException(notImplementedError)
 
   /**
-   * Override function that throws an exception because its an unsupported operation.
-   * @return DataSetPreProcessor DataSetPreProcessor.
+   * @throws UnsupportedOperationException because it is not implemented.
    */
   override def getPreProcessor: DataSetPreProcessor =
     throw new UnsupportedOperationException(notImplementedError)
 
   /**
-   * Override function that throws an exception because its an unsupported operation.
-   * @return List[String]
+   * @throws UnsupportedOperationException because it is not implemented
    */
   override def getLabels: util.List[String] =
     throw new UnsupportedOperationException(notImplementedError)
-
-
-
-
 }

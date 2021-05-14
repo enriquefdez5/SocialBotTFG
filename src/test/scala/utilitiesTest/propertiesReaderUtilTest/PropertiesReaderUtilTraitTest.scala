@@ -14,21 +14,4 @@ class PropertiesReaderUtilTraitTest extends PropertiesReaderUtilTrait {
     assertFalse(getProperties.isEmpty)
   }
 
-  @Test
-  def savePropertiesTest(): Unit = {
-    // Update properties file with new item
-    // setting parameters
-    val newPropertyName: String = "testPropertyName"
-    val newPropertyValue: String = "testPropertyValue"
-    getProperties.setProperty(newPropertyName, newPropertyValue)
-
-    // execute action
-    saveProperties()
-
-    // test action
-    assertNotNull(getProperties.getProperty(newPropertyName))
-    assertEquals(
-      getProperties.getProperty(newPropertyName),
-      newPropertyValue)
-  }
 }

@@ -2,14 +2,17 @@ package utilities.fileManagement
 
 import java.io.{BufferedReader, File, FileNotFoundException, FileReader}
 import java.util
-
 import org.apache.logging.log4j.scala.Logging
-import utilities.properties.PropertiesReaderUtilTrait
-
 import scala.annotation.tailrec
 
-trait FileReaderUtilTrait extends Logging with PropertiesReaderUtilTrait {
+/** Trait that contains file reading operations */
+trait FileReaderUtilTrait extends Logging {
 
+  /** Read csv file.
+   *
+   * @param fileName Path of the file to read.
+   * @return Csv file content.
+   */
   def readCSVFile(fileName: String): util.ArrayList[String] = {
     val file = new File(fileName)
     try {
@@ -20,10 +23,9 @@ trait FileReaderUtilTrait extends Logging with PropertiesReaderUtilTrait {
       result
     }
     catch {
-      case exception: FileNotFoundException => {
-        logger.debug(exception.getMessage)
+      case exception: FileNotFoundException =>
+        logger.error(exception.getMessage)
         new util.ArrayList[String]()
-      }
     }
   }
 

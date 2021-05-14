@@ -1,86 +1,73 @@
 package app.dataRecovery
 
-// logging
 import app.twitterAPI.ConfigRun
-import app.twitterAPI.TwitterService.getTwintTweets
-import app.twitterAPI.TwitterServiceOperations.getTweetText
+import app.twitterAPI.TwitterService.{getTweets, getTwintTweets}
+import app.twitterAPI.TwitterServiceOperations.{getActionsWithWeekSeparator, getAllActionsOrderedByDate, getTrainableActions, getTweetText}
 import org.apache.logging.log4j.scala.Logging
-import utilities.console.ConsoleUtilitiesTrait
+import utilities.console.ConsoleUtilTrait
 
-// twitterAPI package
-import app.twitterAPI.TwitterService.{getActionsWithMonthSeparator, getAllActionsOrderedByDate, getTrainableActions, getTweets}
 import app.twitterAPI.TwitterFilterTrait
 
-// utilities import
 import utilities.fileManagement.FileWriterUtilTrait
-import utilities.properties.PropertiesReaderUtilTrait
 import utilities.fileManagement.FileReaderUtilTrait
 
-object MainDataRecovery extends Logging with FileWriterUtilTrait with FileReaderUtilTrait with
-  PropertiesReaderUtilTrait with TwitterFilterTrait with ConsoleUtilitiesTrait {
+
+/** Object with main method for data recovery.
+ *
+ * It extends Logging, FileWriterUtilTrait, FileReaderUtilTrait, TwitterFilterTrait and ConsoleUtilTrait functionality.
+ */
+object MainDataRecovery extends Logging with FileWriterUtilTrait with FileReaderUtilTrait
+                                        with TwitterFilterTrait with ConsoleUtilTrait {
 
 
-  // Main method for reading tweets and saving in file for later training.
+  /** Main method for data recovery
+   * @param args. Item needed to interact with Twitter API.
+   */
   def main(args: Array[String]): Unit = {
-    val startTime = System.currentTimeMillis()
-
-    logger.info("AIBehaviour twitter says hi!")
-    // Twitter API search
+    val selectedOption: Int = mainDataRecoveryExecutionMainMenu(args)
     val conf = new ConfigRun(args)
 
-    // User input
+    val date = askForDate(selectedOption)
+
     val twitterUsernameMsg: String = "Type in twitter username to get data from"
     val twitterUsername: String = askForTwitterUsername(conf, twitterUsernameMsg)
-
-    // language must be spanish or english
     val language: Boolean = askForLanguage()
 
 
-    // Twint csv path
     val twintCSVTweetsPath: String = "./data(manual)/"
-
-    // Setting character training dataset file location (WRITE to READ)
     val generatedTxtPath: String = "./data(generated)/" + twitterUsername + ".txt"
-
-    // Setting csv actions and dates file location (WRITE to READ)
     val generateCSVPath: String = "./data(generated)/" + twitterUsername + ".csv"
 
     createDirectories()
 
-    // Get twint tweets
-    getTwintTweets(twitterUsername, twintCSVTweetsPath)
-
-    // Read file, remove header and get tweet text
+    try {
+      getTwintTweets(twitterUsername, twintCSVTweetsPath, selectedOption, date)
+    }
+    catch {
+      case exception: Exception => logger.error(exception.getMessage)
+        System.exit(0)
+    }
     val tweets = readCSVFile(twintCSVTweetsPath + twitterUsername + ".csv")
-    tweets.remove(0)
-    val textColumn: Int = 10
-    val tweetText = getTweetText(tweets, textColumn)
+    if (tweets.size() > 0) {
+      tweets.remove(0)
+      val textColumn: Int = 10
+      val splitSymbol: String = "\t"
 
+      val tweetText = getTweetText(tweets, textColumn, splitSymbol)
 
-    // Getting twitter api tweets
-    val apiTweets = getTweets(conf, twitterUsername)
-    val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
+      val apiTweets = getTweets(conf, twitterUsername, selectedOption, date)
+      val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
+      val actionsWithWeekSeparator = getActionsWithWeekSeparator(actionTrainingTweets)
+      val trainableActions = getTrainableActions(actionsWithWeekSeparator)
 
-    val actionsWithMonthSeparator = getActionsWithMonthSeparator(actionTrainingTweets)
-    val trainableActions = getTrainableActions(actionsWithMonthSeparator)
+      val filteredTweets = cleanTweets(tweetText, language)
+      val characterTrainingTweets: Seq[String] = addLineBreak(filteredTweets)
 
-
-    // Clean and filter csv tweets for character nn training
-    val filteredTweets = cleanTweets(tweetText, language)
-
-    // Add marks to text for the neural network
-    val characterTrainingTweets: Seq[String] = markTweets(filteredTweets)
-
-    // Write tweets text in file
-    writeDataOnAFile(characterTrainingTweets, generatedTxtPath)
-
-    // Write tweets actions in file
-    writeDataOnAFile(trainableActions, generateCSVPath)
-    logger.info("AIBheaviour twitter says good bye!")
-
-
-    val endTime = System.currentTimeMillis()
-    val timeElapsed = endTime - startTime
-    logger.info("Execution time in seconds: " + timeElapsed/1000.0)
+      writeDataOnAFile(characterTrainingTweets, generatedTxtPath)
+      writeDataOnAFile(trainableActions, generateCSVPath)
+    }
+    else {
+      logger.warn("No tweets were found")
+    }
   }
 }

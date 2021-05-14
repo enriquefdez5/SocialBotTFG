@@ -32,4 +32,12 @@ class FileWriterUtilTraitTest extends FileWriterUtilTrait {
       case exception: FileNotFoundException => assertNotNull(exception)
     }
   }
+
+  @Test
+  def createDirectoriesTest(): Unit = {
+    createDirectories()
+    assertTrue(new File("./data(generated)/").exists())
+    assertTrue(new File("./data(manual)/").exists())
+    assertTrue(new File("./models/").exists())
+  }
 }

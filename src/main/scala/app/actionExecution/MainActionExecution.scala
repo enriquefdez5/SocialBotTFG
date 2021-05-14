@@ -1,68 +1,60 @@
 package app.actionExecution
 
-// java, scala and logging package
 import java.util
-import org.apache.logging.log4j.scala.Logging
 import scala.annotation.tailrec
+import org.apache.logging.log4j.scala.Logging
 
-
-// App package
-import app.twitterAPI.ConfigRun
-
-// Utilities package
-import utilities.console.ConsoleUtilitiesTrait
-
-// model package
 import model.NNActionItem
-import model.NNActionItem.postToTypeAndDate
+import model.NNActionItem.stringToNNActionItem
 
-// neural networks package
 import neuralNetworks.NeuralNetworkTrainingTrait
 
-// twitterAPI package
-import app.twitterAPI.TwitterService.{getLastTweet, getTweets}
-import app.twitterAPI.TwitterServiceOperations.{getMeanActionsPerHour, getMaxFollowedPostActions}
+import app.twitterAPI.TwitterService.{ getLastTweet, executeAction }
+import app.twitterAPI.TwitterServiceOperations.{ obtainMeanActionsPerHour, getMaxFollowedPostActions }
+import app.twitterAPI.ConfigRun
 
-// utilities package
 import utilities.dates.DatesUtilTrait
 import utilities.fileManagement.FileReaderUtilTrait
-import utilities.properties.PropertiesReaderUtilTrait
+import utilities.console.ConsoleUtilTrait
 
-object MainActionExecution extends Logging with ConsoleUtilitiesTrait with PropertiesReaderUtilTrait with
+/** Object with main method for action execution
+ *
+ * It extends Logging, ConsoleUtilTrait, FileReaderUtilTrait, NeuralNetworkTrainingTrait and DatesUtilTrait
+ * functionality.
+ */
+object MainActionExecution extends Logging with ConsoleUtilTrait with
 FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
 
-
+  /** Main class for action execution
+   * @param args. Item needed to interact with Twitter API.
+   */
   def main(args: Array[String]): Unit = {
-    // Twitter API search
     val conf = new ConfigRun(args)
 
     val twitterUsernameMsg: String = "Type in twitter username to imitate"
     val twitterUsername: String = askForTwitterUsername(conf, twitterUsernameMsg)
 
-    // Loop for generating and executing actions
     val idx = 0
     val loopLimit = 20
-    // Get twitter api tweets
-    val tweets = getTweets(conf, twitterUsername)
 
-    // Get csv tweets and remove header
-    val csvTweets: util.ArrayList[String] = readCSVFile("./data(manual)/" + twitterUsername + ".csv")
-    if (csvTweets.size() == 0) {
-      logger.info("This user has 0 tweets. System will shut dowm.")
+    val typeAndDateTweets = readCSVFile("./data(generated)/" + twitterUsername + ".csv")
+
+    if (typeAndDateTweets.size() == 0) {
+      logger.warn("This user has 0 tweets. System will shut dowm.")
       System.exit(1)
     }
-    csvTweets.remove(0)
 
-    // Mean and max actions per hour
-    val meanActionsPerHour: Int = getMeanActionsPerHour(tweets, csvTweets)
 
-    logger.debug("meanActionsPerHour: " + meanActionsPerHour)
+    val csvTweets: util.ArrayList[String] = readCSVFile("./data(generated)/" + twitterUsername + ".csv")
+    if (csvTweets.size() == 0) {
+      logger.warn("This user has 0 tweets. System will shut dowm.")
+      System.exit(1)
+    }
+    val meanActionsPerHour = obtainMeanActionsPerHour(csvTweets)
 
-    // Post
-    val maxFollowedPostActions: Int = getMaxFollowedPostActions(tweets, csvTweets)
+    val maxFollowedPostActions: Int = getMaxFollowedPostActions(csvTweets)
 
-    // Get last type and date action from twitter api
-    val lastTypeAndDateAction: NNActionItem = postToTypeAndDate(tweets.head)
+    val lastTypeAndDateAction: NNActionItem = stringToNNActionItem(csvTweets.get(csvTweets.size() - 1))
 
     val sameHourCount: Int = 0
     val followedPostActionsCount: Int = 0
@@ -73,12 +65,12 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
   }
 
 
-  /**
-   * This method contains the loop for generating and executing actions.
+  /** Main method loop for action execution.
    *
-   * @param conf      . Item needed to interact with Twitter API.
-   * @param idx       . Value that represents the iteration number.
-   * @param loopLimit . Limit value. It defines the loop stop condition.
+   * @param conf. Item needed to interact with Twitter API.
+   * @param idx. Number of iteration.
+   * @param lastTypeAndDate. Last action type and date.
+   * @param actionExecutionData. Object that contains params needed to execute actions.
    */
   @tailrec
   private def loop(conf: ConfigRun,
@@ -87,7 +79,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
     if (idx < loopLimit) {
       val lastTweet = getLastTweet(conf, idx,
                                    actionExecutionData.twitterUsername)
-      // se actualiza con la app.
+
       val newTypeAndDateAction: NNActionItem = generateNextAction(actionExecutionData.twitterUsername,
                                                                   actionExecutionData.followedPostActionsCount,
                                                                   actionExecutionData.maxFollowedPostActions,
@@ -95,9 +87,7 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
       val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
       val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
 
-      // Action at same hour
       if (isAtSameHour) {
-        // Another action at same hour can be done
         if (actionExecutionData.sameHourCount < actionExecutionData.meanActionsPerHour) {
           executeAction(actionExecutionData.twitterUsername, newTypeAndDateAction, conf)
           if (isPostAction) {
@@ -114,7 +104,8 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
           }
         }
         else {
-          logger.debug("No more actions can be done at the generated hour")
+          logger.info("No more actions can be done at the generated hour")
+          logger.info("\nWaiting for the next hour...")
           waitForNextHour()
           loop(conf, idx, loopLimit, newTypeAndDateAction,
             ActionExecutionData(actionExecutionData.twitterUsername,
@@ -122,7 +113,6 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
               .followedPostActionsCount, actionExecutionData.maxFollowedPostActions))
         }
       }
-      // Action at different hour
       else {
         executeAction(actionExecutionData.twitterUsername, newTypeAndDateAction, conf)
         if (isPostAction) {
@@ -137,22 +127,6 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
               1, actionExecutionData.meanActionsPerHour, 0, actionExecutionData.maxFollowedPostActions))
         }
       }
-    }
-  }
-
-  /**
-   * Function that will execute an action following typeAndDate object
-   *
-   * @param typeAndDate, TypeAndDate item.
-   * @param conf, ConfigRun. Item needed to interact with Twitter API.
-   */
-  private def executeAction(twitterUsername: String, typeAndDate: NNActionItem, conf: ConfigRun): Unit = {
-    val date = buildDate(typeAndDate.dayOfWeek, typeAndDate.hourOfDay)
-    logger.debug("Next action will be executed at: " + date.toString)
-    val now = getCalendarInstance.getTime
-    if (waitForDate(date, now)) {
-      typeAndDate.action.execute(twitterUsername, conf)
-      waitForNextAction()
     }
   }
 }

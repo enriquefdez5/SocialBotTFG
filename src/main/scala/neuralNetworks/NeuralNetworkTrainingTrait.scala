@@ -1,101 +1,175 @@
 package neuralNetworks
 
-import java.io.{File, FileInputStream}
+import java.io.{File, FileInputStream, FileNotFoundException}
 import java.util.Random
-import java.util.concurrent.TimeUnit
-
-import model.NNActionItem.{buildTypeAndDateFromDayHourAndAction, postToTypeAndDate}
-import model.{NNActionItem, StatusImpl}
-import model.exceptions.{NotExistingFileException, WrongParamValueException}
-import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
-import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
-import org.apache.commons.io.IOUtils
-import org.apache.logging.log4j.scala.Logging
-import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
-import org.deeplearning4j.earlystopping.EarlyStoppingConfiguration
-import org.deeplearning4j.earlystopping.scorecalc.DataSetLossCalculator
-import org.deeplearning4j.earlystopping.termination.{MaxEpochsTerminationCondition, MaxTimeIterationTerminationCondition}
-import org.deeplearning4j.earlystopping.trainer.EarlyStoppingTrainer
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
-import org.nd4j.linalg.factory.Nd4j
-import utilities.properties.PropertiesReaderUtilTrait
-import utilities.validations.ValidationsUtilTrait
 
 import scala.annotation.tailrec
 
+import org.apache.commons.io.IOUtils
+import org.apache.logging.log4j.scala.Logging
+import org.deeplearning4j.nn.api.OptimizationAlgorithm
+import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
+import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.nd4j.linalg.api.ndarray.INDArray
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
+import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.learning.config.Adam
+
+import model.NNActionItem.{buildNNActionItemFromDayHourAndAction, statusToNNActionItem}
+import model.{NNActionItem, StatusImpl}
+import model.exceptions.{NotExistingFileException, WrongParamValueException}
+
+import neuralNetworks.rnnCharacterGenerator.CharacterGeneratorIterator
+import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator.sampleCharactersFromNetwork
+
+import utilities.properties.PropertiesReaderUtilTrait
+import utilities.validations.ValidationsUtilTrait
+
+/** Trait that contains more functionality for the neural network training. */
 trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with PropertiesReaderUtilTrait {
 
-
   val splitSymbol: String = "\n"
-//  val splitSymbol: String = ","
   val totalPercentage: Int = 100
   val trainingPercentage: Int = 80
   val testPercentage: Int = totalPercentage-trainingPercentage
 
+  val neuralNetworkFolderPath = "./models/"
 
+  /** Save neural network model.
+   *
+   * @param net Net model to save.
+   * @param twitterUsername Twitter username of the neural network.
+   * @param netType Type of the neural network. It could be Action or Text
+   */
+  def createPathAndSaveNetwork(net: MultiLayerNetwork, twitterUsername: String, netType: String): Unit = {
+    val networkPath: String = neuralNetworkFolderPath + twitterUsername + netType + "zip"
+    saveNetwork(net, networkPath)
+  }
+
+  private def saveNetwork(net: MultiLayerNetwork, path: String): Unit = {
+    net.save(new File(path), true)
+  }
+
+  /** Create and configure a multilayer network.
+   *
+   * @param trainingIter Dataset Iterator, it could be ActionGeneratorIterator or CharacterGeneratorIterator.
+   * @param confItem Configuration item with data to configure the created neural network.
+   * @return Created and configured multilayer network.
+   */
+  def createAndConfigureNetwork(trainingIter: DataSetIterator, confItem: NeuralNetworkConfItem): MultiLayerNetwork = {
+    val nIn = trainingIter.inputColumns()
+    val nOut = trainingIter.totalOutcomes()
+    val netConf: MultiLayerConfiguration = configureNetwork(confItem, nIn, nOut)
+    val net = new MultiLayerNetwork(netConf)
+    net.init()
+    net.setListeners(new ScoreIterationListener(1))
+    logger.info(net.summary())
+    net
+  }
+
+  private def configureNetwork(confItem: NeuralNetworkConfItem, nIn: Int, nOut: Int): MultiLayerConfiguration = {
+    val nnConf = new NeuralNetConfiguration.Builder()
+      .seed(confItem.seed)
+      .l2(0.0001)
+      .weightInit(confItem.weightInit)
+      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .updater(new Adam(confItem.learningRate))
+      .list()
+
+    addLayers(nnConf, confItem, nIn, 0)
+
+    nnConf.layer(new RnnOutputLayer.Builder(confItem.lossFunction).activation(confItem.activationRNN)
+      .nIn(confItem.layerWidth).nOut(nOut)
+      .dropOut(0.8)
+      .build())
+      .backpropType(confItem.tbpttType)
+      .tBPTTForwardLength(confItem.tbpttLength)
+      .tBPTTBackwardLength(confItem.tbpttLength)
+      .build()
+  }
+
+  @tailrec
+  private def addLayers(conf: NeuralNetConfiguration.ListBuilder, confItem: NeuralNetworkConfItem,
+                        nIn: Int, idx: Int): Unit = {
+    if (idx < confItem.layerCount) {
+      conf.layer(new LSTM.Builder().nIn(nIn).nOut(confItem.layerWidth)
+        .activation(confItem.activationLSTM).build())
+      addLayers(conf, confItem, confItem.layerWidth, idx + 1)
+    }
+  }
+
+  /** Get data from training data file.
+   *
+   * @param twitterUsername Twitter username to whom the file belongs.
+   * @param isTextFile True if it is the text file.
+   *                   False if it is the csv file.
+   * @return Data readed.
+   * @throws FileNotFoundException if system cannot find the file specified.
+   */
+  def getData(twitterUsername: String, isTextFile: Boolean): Array[String] = {
+    try {
+      val dataSetFileName: String = "./data(generated)/" + twitterUsername + getFormat(isTextFile)
+      val data = IOUtils.toString(new FileInputStream(dataSetFileName), "UTF-8")
+      data.split(getSplitSymbol)
+    }
+    catch {
+      case exception: FileNotFoundException =>
+        logger.info(exception.getMessage)
+        throw exception
+    }
+  }
+  private def getFormat(isTextFile: Boolean): String = {
+    if (isTextFile) { ".txt" } else { ".csv" }
+  }
+
+  /**
+   * @return Percentage value for total data.
+   */
   def getTotalPercentage: Int = {
     totalPercentage
   }
 
+  /**
+   * @return Training data percentage value.
+   */
   def getTrainingPercentage: Int = {
     trainingPercentage
   }
 
+  /**
+   * @return Text data percentage value.
+   */
   def getTestPercentage: Int = {
     testPercentage
   }
 
+  /**
+   * @return line split symbol string
+   */
   def getSplitSymbol: String = {
     splitSymbol
   }
 
-  def getEsConf(maxEpochNumber: Int, maxTimeAmount: Int, testIter: DataSetIterator, saver: LocalFileModelSaver)
-  : EarlyStoppingConfiguration[MultiLayerNetwork] = {
-    new EarlyStoppingConfiguration.Builder()
-      .epochTerminationConditions(new MaxEpochsTerminationCondition(maxEpochNumber))
-      .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
-      .scoreCalculator(new DataSetLossCalculator(testIter, true))
-      .evaluateEveryNEpochs(1)
-      .modelSaver(new LocalFileModelSaver("./models/"))
-      .build()
-  }
-
-  def getSaver(directory: String): LocalFileModelSaver = {
-    val dirFile: File = new File(directory)
-    dirFile.mkdir()
-    new LocalFileModelSaver(directory)
-  }
 
 
-
-  def saveNetwork(net: MultiLayerNetwork, path: String): Unit = {
-    //    val locationToSave = new File(getProperties.getProperty("textNNPath"))
-    net.save(new File(path), true)
-  }
-
-  /**
-   * Private function that splits dataset into training data and testing data.
-   * @param splitData, Array[String]. Read dataset to be split.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Split string with the given size.
+  /** Get training data.
+   *
+   * @param splitData Data to split.
+   * @param splitSize Split size.
+   * @return Data splitted.
    */
   def getTrainingData(splitData: Array[String], splitSize: Int): Array[String] = {
+    checkNotEmptySeq(splitData)
+    checkNotNegativeInt(splitSize)
+
     val idx = 0
     val arrayToReturn: Array[String] = new Array[String](splitSize)
     addTrainingElement(arrayToReturn, idx, splitData, splitSize)
     arrayToReturn
   }
-  /**
-   * Private tailrec function that obtains a training string from the training dataset.
-   *
-   * @param arrayToReturn, Array[String]. Array of strings to return with the training data.
-   * @param idx, Int. Idx value for stopping the tail recursive loop when it is greater than split size.
-   * @param splitData, Array[String]. Array of strings that contains the data to be split into training and test.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Array of strings containing the training data.
-   */
+
   @tailrec
   private def addTrainingElement(arrayToReturn: Array[String], idx: Int, splitData: Array[String], splitSize: Int)
   : Array[String] = {
@@ -109,28 +183,22 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   }
 
 
-  /**
-   * Private function that returns the test data.
-   * @param splitData, Array[String]. Read dataset to be split.
-   * @param splitSize, Int.Size of the split.
-   * @return Array[String]. Split string with the given size.
+  /** Get test data.
+   *
+   * @param splitData Data to split.
+   * @param splitSize Size of the split.
+   * @return Split data.
    */
   def getTestData(splitData: Array[String], splitSize: Int) : Array[String] = {
+    checkNotEmptySeq(splitData)
+    checkNotNegativeInt(splitSize)
+
     val idx = 0
     val arrayToReturn: Array[String] = new Array[String](splitData.length - splitSize)
     addTestElement(arrayToReturn, idx, splitData, splitSize)
     arrayToReturn
   }
 
-  /**
-   * Private tailrec function that obtains a testing string from the testing dataset.
-   *
-   * @param arrayToReturn, Array[String]. Array of strings to return with the testing data.
-   * @param idx, Int. Idx value for stopping the tail recursive loop when it is greater than split size.
-   * @param splitData, Array[String]. Array of strings that contains the data to be split into training and test.
-   * @param splitSize, Int. Size of the split.
-   * @return Array[String]. Array of strings containing the testing data.
-   */
   @tailrec
   private def addTestElement(arrayToReturn: Array[String], idx: Int, splitData: Array[String], splitSize: Int): Array[String] = {
     if (idx < splitData.length - splitSize) {
@@ -144,10 +212,10 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
 
 
 
-  /**
-   * Function that loads neural network for generating text.
-   * @param nCharactersToSample. Number of characters to generate
-   * @return the generated text as String
+  /** Prepare text to sample characters from a neural network model.
+   *
+   * @param nCharactersToSample. Number of characters to sample.
+   * @return The generated text.
    */
   def prepareText(twitterUsername: String, nCharactersToSample: Int): String = {
     checkNotNegativeInt(nCharactersToSample)
@@ -155,30 +223,24 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
     val rng = new Random()
     val miniBatchSize = getProperties.getProperty("trainingMiniBatchSize").toInt
     val exampleLength = getProperties.getProperty("trainingExampleLength").toInt
-    val iter: CharacterGeneratorIterator = getCharacterIterator(twitterUsername, miniBatchSize, exampleLength, rng)
+    val iter: CharacterGeneratorIterator = getCharacterIterator(twitterUsername, miniBatchSize, exampleLength)
     val postNCharactersToSample = nCharactersToSample
-    val textNN = loadNetwork("./models/" + twitterUsername + "Text.zip")
+    val textNN = loadNetwork(neuralNetworkFolderPath + twitterUsername + "Text.zip")
     sampleCharactersFromNetwork(initializationString, textNN, iter,
       rng, postNCharactersToSample)
   }
 
-  /**
-   * Function that creates a character iterator needed to sample characters.
-   * @param miniBatchSize. Int value representing the mini batch size.
-   * @param exampleLength. Int value representing the length of each example to be loaded.
-   * @param rng. Random object used to set a seed value.
-   * @return CharacterIterator object needed to sample characters.
-   */
-  private def getCharacterIterator(twitterUsername: String, miniBatchSize: Int, exampleLength: Int, rng: Random)
+  private def getCharacterIterator(twitterUsername: String, miniBatchSize: Int, exampleLength: Int)
   : CharacterGeneratorIterator = {
     val data = IOUtils.toString(new FileInputStream("./data(generated)/" + twitterUsername + ".txt"), "UTF-8")
-    new CharacterGeneratorIterator(miniBatchSize, exampleLength, rng, data.split("\n"))
+    new CharacterGeneratorIterator(miniBatchSize, exampleLength, data.split("\n"))
   }
 
-  /**
-   * Function that loads a neural network from the app files.
-   * @param name. String that is the neural network file name to load.
-   * @return MultiLayerNetwork object that is the loaded neural network.
+  /** Load neural network from given path.
+   *
+   * @param name. Neural network path.
+   * @return MultiLayerNetwork object.
+   * @throws NotExistingFileException if file does not exist.
    */
   def loadNetwork(name: String): MultiLayerNetwork = {
     val textNetworkLocation = new File(name)
@@ -189,16 +251,15 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   }
 
 
-  /**
-   * Function that generates next type and date action.
-   * @param followedPostActionsCount, Int. Count of followed post actions.
-   * @param maxFollowedPostActions, Int. Number of maximum followed post actions.
-   * @param tweets, Seq[Post]. Last five tweets gathered from the active user.
-   * @return TypeAndDate. TypeAndDate object with the generated action type and execution date.
+  /** Generate action.
+   *
+   * @param followedPostActionsCount Count of followed post actions.
+   * @param maxFollowedPostActions Number of maximum followed post actions.
+   * @param tweets Last tweet as a sequence
+   * @return TypeAndDate object with the generated action type and execution date.
    */
   def generateNextAction(twitterUsername: String, followedPostActionsCount: Int, maxFollowedPostActions: Int,
                          tweets: Seq[StatusImpl]): NNActionItem = {
-    // Get last tweet
     checkNotNegativeInt(followedPostActionsCount)
     checkNotNegativeInt(maxFollowedPostActions)
     checkNotEmptySeq(tweets)
@@ -208,33 +269,26 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   }
 
 
-  /**
-   * Function that loads the neural network that generates a TypeAndDate object from an INDArray.
-   * @param inputArray. INDArray built with last 5 tweets that will be passed to the neural network as a parameter.
-   * @return a TypeAndDate object built with the output from the neural network.
-   */
   private def generateNextTypeAndDateAction(twitterUsername: String, followedPostActionsCount: Int,
   maxFollowedPostActions: Int, inputArray: INDArray): NNActionItem = {
-    // Load other neural networks for date generation
     try {
-      val typeAndDateNN = loadNetwork("./models/" + twitterUsername + "Action.zip")
+      val typeAndDateNN = loadNetwork(neuralNetworkFolderPath + twitterUsername + "Action.zip")
       typeAndDateNN.rnnClearPreviousState()
 
-      // Generate output
       val output = typeAndDateNN.output(inputArray)
 
-      // Compose typeAndDate object with output
       val day = getOutputDay(output.getDouble(0.toLong))
       val hour = getOutputHour(output.getDouble(1.toLong))
       val action = getActionValue(getOutputAction(output.getDouble(2.toLong)))
-      buildTypeAndDateFromDayHourAndAction(day, hour, action, followedPostActionsCount, maxFollowedPostActions)
+      buildNNActionItemFromDayHourAndAction(day, hour, action, followedPostActionsCount, maxFollowedPostActions)
     }
     catch {
-      case exception: NotExistingFileException => logger.debug(exception.msg)
+      case exception: NotExistingFileException => logger.error("Neural network file does not exist.\n" + exception.msg)
         System.exit(1)
-        buildTypeAndDateFromDayHourAndAction(1, 1, 1, followedPostActionsCount, maxFollowedPostActions)
+        buildNNActionItemFromDayHourAndAction(1, 1, 1, followedPostActionsCount, maxFollowedPostActions)
     }
   }
+
   private def getActionValue(value : Long): Int = {
     if (value < 1) {
       1
@@ -242,55 +296,45 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
     else { value.toInt }
   }
 
-  /**
-   * Function that compose day value from neural network output.
-   * @param outputDay. Double value from neural network output.
-   * @return an Integer value that represents the day of the week in which the action will be executed.
+  /** Get neural network day output as an integer value.
+   *
+   * @param outputDay Neural network output day value.
+   * @return Value of neural network output rounded up as an integer.
    */
   def getOutputDay(outputDay: Double): Int = {
     checkNotNegativeLong(outputDay.toLong)
-    logger.debug("Generated output day: " + outputDay.toString)
     (outputDay*7).toInt
   }
 
-  /**
-   * Function that compose hour value from neural network output.
-   * @param outputHour. Double value from neural network output.
-   * @return an Integer value that represents the hour of the day in which the action will be executed.
+  /** Get neural network hour output as an integer.
+   *
+   * @param outputHour Neural network output hour value.
+   * @return Value of neural network output hour rounded up as an integer.
    */
   def getOutputHour(outputHour: Double): Int = {
     checkNotNegativeLong(outputHour.toLong)
-    logger.debug("Generated output hour: " + outputHour.toString)
     (outputHour*23).toInt
   }
 
-  /**
-   * Function that compose action value from neural network output.
-   * @param outputAction. Double value from neural network output.
-   * @return an Integer value that represents the chosen action that will be executed.
+  /** Function that compose action value from neural network output.
+   *
+   * @param outputAction Neural network output action value.
+   * @return Value of neural network output action rounded up as an integer.
    */
   def getOutputAction(outputAction: Double): Int = {
     try {
       checkNotNegativeLong(outputAction.toLong)
-      logger.debug("Generated output hour: " + outputAction.toString)
       (outputAction*3).toInt
     }
     catch {
-      case exception: WrongParamValueException => {
-        logger.info(exception.msg)
+      case exception: WrongParamValueException =>
+        logger.error(exception.msg)
         1
-      }
     }
   }
 
 
-  /**
-   * Function that build an INDArray with the last 5 tweets posted by the user.
-   * @param tweets. Last 5 tweets posted by the user.
-   * @return an INDArray built with params tweets.
-   */
   private def getNNInputArrayFromTweets(tweets: Seq[StatusImpl]): INDArray = {
-
     val numberOfInputs = tweets.length
     val numberOfInputElements = 3
     val numberOfTimeSteps = 1
@@ -300,13 +344,6 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
     getNNInputArrayFromTweetsLoop(tweets, inputArray, idx)
   }
 
-  /**
-   * Tailrec loop function for building an INDArray with a given sequence of tweets.
-   * @param tweets, Seq[StatusImpl]. Sequence of post object to iterate over.
-   * @param inputArray, INDArray. INDArray to fill with tweets info.
-   * @param idx, Int. Index to iterate over tweets sequence.
-   * @return INDArray. The INDArray full filled with the info from the sequence of tweets.
-   */
   @tailrec
   private def getNNInputArrayFromTweetsLoop(tweets: Seq[StatusImpl], inputArray: INDArray, idx: Int): INDArray = {
     if (idx < tweets.length) {
@@ -316,79 +353,15 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
     else { inputArray }
   }
 
+  private def addInputToArray(inputArray: INDArray, status: StatusImpl, idx: Long): Unit = {
+    val nnActionItem: NNActionItem = statusToNNActionItem(status)
 
-  /**
-   * Helper function that adds an element to a INDArray.
-   * @param inputArray. INDArray that will add an element.
-   * @param post. Tweet to be added to INDArray.
-   * @param idx. Idx that indicates the position of the element that will be added to the INDArray.
-   */
-  private def addInputToArray(inputArray: INDArray, post: StatusImpl, idx: Long): Unit = {
-    val typeAndDate: NNActionItem = postToTypeAndDate(post)
-
-    logger.debug("-------------------------------")
-    logger.debug("TypeAndDate day of week: " + typeAndDate.dayOfWeek.toString)
-    logger.debug((typeAndDate.dayOfWeek.toLong / 7.0).toString)
-    logger.debug("TypeAndDate hour of day: " + typeAndDate.hourOfDay.toString)
-    logger.debug((typeAndDate.hourOfDay.toLong / 23.0).toString)
-    logger.debug("TypeAndDate action: " + typeAndDate.action.toString)
-    logger.debug((typeAndDate.action.value / 3.0).toString)
-    logger.debug("-------------------------------")
-
-    inputArray.putScalar(Array[Long](idx, 0, 0), typeAndDate.dayOfWeek.toLong / 7.0)
-    inputArray.putScalar(Array[Long](idx, 1, 0), typeAndDate.hourOfDay.toLong / 23.0)
-    inputArray.putScalar(Array[Long](idx, 2, 0), typeAndDate.action.value / 3.0)
+    inputArray.putScalar(Array[Long](idx, 0, 0), nnActionItem.dayOfWeek.toLong / 7.0)
+    inputArray.putScalar(Array[Long](idx, 1, 0), nnActionItem.hourOfDay.toLong / 23.0)
+    inputArray.putScalar(Array[Long](idx, 2, 0), nnActionItem.action.value / 3.0)
   }
 
-  /**
-   * Function that returns an empty string needed to sample characters
-   * @return an empty string
-   */
   private def getNoInitializationString : String = {
     ""
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  def fitNetwork(maxEpochNumber: Int,
-                 maxTimeAmount: Int,
-                 trainingIter: DataSetIterator,
-                 testIter: DataSetIterator,
-                 net: MultiLayerNetwork,
-                 saver: LocalFileModelSaver): Unit = {
-
-    val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = getEsConf(maxEpochNumber,
-      maxTimeAmount,
-      testIter,
-      saver)
-    val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
-    val result = trainer.fit()
-
-    logger.debug("Termination reason: " + result.getTerminationReason)
-    logger.debug("Termination details: " + result.getTerminationDetails)
-    logger.debug("Total epochs: " + result.getTotalEpochs)
-    logger.debug("Best epoch number: " + result.getBestModelEpoch)
-    logger.debug("Score at best epoch: " + result.getBestModelScore)
-
-//    val bestModel: MultiLayerNetwork = result.getBestModel
-
-    //    // Evaluate best model obtained with test data.
-    //    evaluateNet(bestModel, testIter)
-
-//    saveNetwork(bestModel, getProperties.getProperty("textNNPath"))
-//    bestModel
   }
 }

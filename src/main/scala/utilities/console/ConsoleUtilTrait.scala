@@ -1,26 +1,29 @@
 package utilities.console
 
+import org.apache.logging.log4j.scala.Logging
 
 import java.util
 import java.util.{Calendar, Date}
-
-import app.actionExecution.MainActionExecution
-import app.dataRecovery.MainDataRecovery
-import app.twitterAPI.{ConfigRun, TwitterClientTrait}
-import neuralNetworks.rnnActionGenerator.MainNNActionGenerator
-import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator
-import org.apache.logging.log4j.scala.Logging
-import twitter4j.{TwitterException, User}
-import utilities.dates.DatesUtilTrait
 
 import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.io.StdIn.readLine
 
-/**
- * Trait that contains console input and output functions.
- */
-trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUtilTrait {
+import app.actionExecution.MainActionExecution
+import app.dataRecovery.MainDataRecovery
+import app.twitterAPI.{ConfigRun, TwitterClientTrait}
+
+import neuralNetworks.rnnActionGenerator.MainNNActionGenerator
+import neuralNetworks.rnnCharacterGenerator.MainNNCharacterGenerator
+
+import twitter4j.{TwitterException, User}
+
+import utilities.dates.DatesUtilTrait
+
+
+
+/** Trait that contains console input and output functions. */
+trait ConsoleUtilTrait extends Logging with TwitterClientTrait with DatesUtilTrait {
 
   val option1: Int = 1
   val option2: Int = 2
@@ -28,11 +31,9 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
   val option4: Int = 4
   val exitOption: Int = 0
 
-  /**
-   * Show main menu UI and read input
-   */
+  /** Show main menu UI and read input */
   def showMainMenuOptions(args: Array[String]): Int = {
-    logger.info("\nWhat do you want to do? \n" +
+    Console.print("\nWhat do you want to do? \n" +
       "1. Recover user data\n" +
       "2. Train neural network for text generation\n" +
       "3. Train neural network for action generation\n" +
@@ -60,21 +61,21 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
         exitOption
 
       case _ =>
-        logger.info("Not a valid option, try again.")
+        logger.warn("Not a valid option, try again.")
         readMainMenuOption(args)
     }
   }
 
-  /**
-   * Show main data recovery execution menu and read input.
+  /** Show main data recovery execution menu and read input.
+   *
    * @param args Main args to build item to interact with Twitter API.
    * @return Selected option.
    */
   def mainDataRecoveryExecutionMainMenu(args: Array[String]): Int = {
-    logger.info("\nWhat do you want to do? \n" +
+    Console.print("\nWhat do you want to do? \n" +
       "1. Scrape all the Tweets of a user\n" +
       "2. Collect Tweets that were tweeted since a given date\n" +
-      "4. Back\n" +
+      "3. Back\n" +
       "0. Exit\n")
     readMainDataRecoveryMenuOption(args)
   }
@@ -84,32 +85,32 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     StdIn.readInt() match {
       case `option1` => option1
       case `option2` => option2
-      case `option4` => showMainMenuOptions(args)
+      case `option3` => showMainMenuOptions(args)
         -1
       case `exitOption` => System.exit(1)
         0
       case _ =>
-        logger.info("Not a valid option, try again.")
+        logger.warn("Not a valid option, try again.\n")
         readMainDataRecoveryMenuOption(args)
     }
   }
 
-  /**
-   * Ask for date.
+  /** Ask for date.
+   *
    * @param selectedOption. Selected option in previous menu.
    * @return Date built with user inputs.
    */
   def askForDate(selectedOption: Int): Date = {
     val newDate = new Date()
     if (selectedOption == 2) {
-      logger.info("Indicate the date since tweets will be recovered, please")
+      Console.print("Indicate the date since tweets will be recovered, please\n")
       val year = askForYear()
       val month = askForMonth() - 1
       val day = askForDay(month)
       val hour = askForHour()
       val date = buildDate(hour, day, month, year)
       if (date.after(newDate)) {
-        logger.info("Invalid date. Date is after current date and it must be before current date")
+        logger.warn(date.toString + "is an invalid date. Date is after current date and it must be before current date\n")
         askForDate(selectedOption)
       }
       else {
@@ -124,11 +125,12 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
 
 
   private def askForHour(): Int = {
-    logger.info("Type in a number between 0 and 23, both included, that matches with the last tweet date's hour")
+    Console.print("Type in a number between 0 and 23, both included, that matches with the last tweet date's " +
+      "hour\n")
     try {
       val hour = StdIn.readInt()
       if (hour < 0 || hour > 23) {
-        logger.info("Invalid hour, please try again")
+        logger.warn( hour.toString + " is an invalid hour, please try again\n")
         askForHour()
       }
       else {
@@ -137,7 +139,7 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
     catch {
       case _: NumberFormatException =>
-        logger.info("Invalid hour, please try again")
+        logger.error("Invalid hour, please try again\n")
         askForHour()
     }
   }
@@ -146,12 +148,12 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     val calendar = getCalendarInstance
     calendar.set(Calendar.MONTH, month)
     val maxDay: Int = calendar.getMaximum(Calendar.DAY_OF_MONTH)
-    logger.info("Type in a number between 1 and " + maxDay + ", both included, that matches with the last tweet " +
-      "date's day")
+    Console.print("Type in a number between 1 and " + maxDay + ", both included, that matches with the last tweet " +
+      "date's day\n")
     try {
       val day = StdIn.readInt()
       if (day < 0 || day > maxDay) {
-        logger.info("Invalid day, please try again")
+        logger.warn(day.toString + " is an invalid day, please try again\n")
         askForDay(month)
       }
       else {
@@ -160,7 +162,7 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
     catch {
       case _: NumberFormatException =>
-        logger.info("Invalid day, please try again")
+        logger.error("Invalid day, please try again\n")
         askForDay(month)
     }
   }
@@ -168,12 +170,12 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
   private def askForMonth(): Int = {
     val minMonthValue = 1
     val maxMonthValue = 12
-    logger.info("Type in a number between " + minMonthValue + " and " + maxMonthValue + ", both included, that " +
-      "matches with the last tweet date's month")
+    Console.print("Type in a number between " + minMonthValue + " and " + maxMonthValue + ", both included, that " +
+      "matches with the last tweet date's month\n")
     try {
       val month = StdIn.readInt()
       if (month < minMonthValue || month > maxMonthValue) {
-        logger.info("Invalid month, please try again")
+        logger.warn(month.toString + " is an invalid month, please try again\n")
         askForMonth()
       }
       else {
@@ -182,7 +184,7 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
     catch {
       case _: NumberFormatException =>
-        logger.info("Invalid month, please try again")
+        logger.error("Invalid month, please try again")
         askForMonth()
     }
   }
@@ -192,11 +194,11 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     val calendar = getCalendarInstance
     calendar.setTime(new Date())
     val currentYear = calendar.get(Calendar.YEAR)
-      logger.info("Type in a number that matches with the last tweet date's year")
+      Console.print("Type in a number that matches with the last tweet date's year\n")
     try {
       val year = StdIn.readInt()
       if (year < minYearValue || year > currentYear) {
-        logger.info("Invalid year, please try again")
+        logger.warn(year.toString + " is an invalid year, please try again\n")
         askForYear()
       }
       else {
@@ -205,14 +207,14 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
     catch {
       case _: NumberFormatException =>
-        logger.info("Invalid year, please try again")
+        logger.error("Invalid year, please try again\n")
         askForYear()
     }
   }
 
 
-  /**
-   * Ask for twitter username.
+  /** Ask for twitter username.
+   *
    * @param configRun Item to access Twitter API.
    * @param msg Custom message to show for asking username.
    * @return Twitter username.
@@ -227,8 +229,8 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
     catch {
       case exception: TwitterException =>
-        logger.info(exception.getMessage)
-        logger.info("User with username: \"@" + username + "\" does not exist. Please type a valid username.")
+        logger.error(exception.getMessage)
+        logger.warn("User with username: \"@" + username + "\" does not exist. Please type a valid username.")
         askForTwitterUsername(configRun, msg)
     }
   }
@@ -247,7 +249,7 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
   def askForLanguage(): Boolean = {
     val language: String = readLine("Type in user language S for spanish, E for english \n")
     if (language != "E" && language != "S") {
-      logger.info("Typed language does not match any valid option. Please type a valid option.")
+      logger.warn("Typed language does not match any valid option. Please type a valid option.")
       askForLanguage()
     }
     else {
@@ -262,17 +264,17 @@ trait ConsoleUtilitiesTrait extends Logging with TwitterClientTrait with DatesUt
     }
   }
 
-  /**
-   * Show input file information.
+  /** Show input file information.
+   *
    * @param maxSize Maximum file size.
    * @param fileCharacterToReturn Number of characters to return.
    */
   def showFileInfo(maxSize: Int, fileCharacterToReturn: util.ArrayList[Char]): Unit = {
     val fileCharacterSize = fileCharacterToReturn.size
     val nRemoved = maxSize - fileCharacterSize
-    logger.debug("Loaded and converted file: " + fileCharacterSize + " valid characters of " + maxSize + "" +
+    logger.info("Loaded and converted file: " + fileCharacterSize + " valid characters of " + maxSize + "" +
       " total characters (" + nRemoved + " removed")
-    logger.debug("Number of characters in file: " + fileCharacterSize)
+    logger.info("Number of characters in file: " + fileCharacterSize)
   }
 
 }

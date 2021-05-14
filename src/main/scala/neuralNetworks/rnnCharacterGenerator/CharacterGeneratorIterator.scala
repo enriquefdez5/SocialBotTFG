@@ -2,6 +2,7 @@ package neuralNetworks.rnnCharacterGenerator
 
 import java.util
 import java.util.{Collections, Random}
+import scala.annotation.tailrec
 
 import org.apache.logging.log4j.scala.Logging
 import org.nd4j.linalg.api.ndarray.INDArray
@@ -9,32 +10,35 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.DataSetPreProcessor
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
+
+import utilities.console.ConsoleUtilTrait
 import utilities.validations.ValidationsUtilTrait
 
-import scala.annotation.tailrec
 
-class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Random,
-                                 splittedData: Array[String]) extends DataSetIterator with Logging with
-  ValidationsUtilTrait {
+/** Class to create over character generation training data and create datasets.
+ *
+ * @constructor Create a new character generator iterator with the given data, minibatch size and example length.
+ * @param miniBatchSize Size of the minibatch.
+ * @param exampleLength Length of each example created.
+ * @param data Data for training.
+ */
+class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, data: Array[String]) extends DataSetIterator
+                                                                                            with Logging
+                                                                                            with ValidationsUtilTrait
+                                                                                            with ConsoleUtilTrait {
 
-  // Valid chars used for training
-  //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\"\n',.?;()[]{}:!-#@ "
-  //    val validCharacters = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZabcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
-  val validCharacters = "abcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
+   val validCharacters = "abcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
 
-  // Offsets for the start of each example
   val exampleStartOffsets: util.LinkedList[Int] = new util.LinkedList[Int]
 
-  // Store valid characters for vectorization
   val charToIdxMap: util.Map[Char, Int] = initializeCharToMap()
 
-  // All characters of the input file (after filtering to only those that are valid)
-  val fileCharacters: Array[Char] = setFileCharacters(splittedData)
+  val fileCharacters: Array[Char] = setFileCharacters(data)
   initializeOffsets()
 
   val notImplementedString: String = "Not implemented yet"
 
-  def initializeCharToMap(): util.HashMap[Char, Int] = {
+  private def initializeCharToMap(): util.HashMap[Char, Int] = {
     val charToIdx = new util.HashMap[Char, Int]()
     for (i <- 0 until validCharacters.length) {
       charToIdx.put(validCharacters(i), i)
@@ -43,41 +47,22 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
   }
 
 
-  def setFileCharacters(lines: Array[String]): Array[Char] = {
-    // Split file into lines
-//    val lines: Array[String] = splittedData.split("\n")
-    // Get file max size
+  private def setFileCharacters(lines: Array[String]): Array[Char] = {
     val linesSize: Array[String] = lines.clone()
     val maxSize = linesSize.map(s => s.length).sum
 
-    // Get characters from lines and show info of character readed
     val fileCharacterToReturn: util.ArrayList[Char] = new util.ArrayList[Char]()
     val currentIndex: Int = 0
     readLines(fileCharacterToReturn, lines, currentIndex)
-    checkLength(fileCharacterToReturn)
-    showInfo(maxSize, fileCharacterToReturn)
+    checkFileLength(exampleLength, fileCharacterToReturn)
+    showFileInfo(maxSize, fileCharacterToReturn)
 
-    // Transform into array
     val idx = 0
     val arrayToReturn: Array[Char] = new Array[Char](fileCharacterToReturn.size())
     transformIntoArray(fileCharacterToReturn, arrayToReturn, idx)
     arrayToReturn
   }
 
-  private def showInfo(maxSize: Int, fileCharacterToReturn: util.ArrayList[Char]): Unit = {
-    val fileCharacterSize = fileCharacterToReturn.size
-    val nRemoved = maxSize - fileCharacterSize
-    logger.debug("Loaded and converted file: " + fileCharacterSize + " valid characters of " + maxSize + "" +
-      " total characters (" + nRemoved + " removed")
-    logger.debug("Number of characters in file: " + fileCharacterSize)
-  }
-
-  private def checkLength(fileCharacterToReturn: util.ArrayList[Char]): Unit = {
-    if (exampleLength >= fileCharacterToReturn.size) {
-      throw new IllegalArgumentException("exampleLength=" + exampleLength + "cannot exceed number of valid " +
-        "characters in file (" + fileCharacterToReturn.size + ")")
-    }
-  }
 
   @tailrec
   private def transformIntoArray(fileCharacterToReturn: util.ArrayList[Char], arrayToReturn: Array[Char], idx: Int)
@@ -105,15 +90,15 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
   }
 
 
+  /** Get next dataset.
+   *
+   * @param num. Size of dataset.
+   * @return Dataset
+   */
   override def next(num: Int): DataSet = {
     checkNotNegativeInt(num)
     checkNotEmptyLinkedList(exampleStartOffsets)
     val currMiniBatchSize = Math.min(num, exampleStartOffsets.size())
-    // Allocate space:
-    // Note the order here:
-    // dimension 0 = number of examples in minibatch
-    // dimension 1 = size of each vector (i.e., number of characters)
-    // dimension 2 = length of each time series/example
 
     val input: INDArray = Nd4j.create(Array[Int](currMiniBatchSize, validCharacters.length, exampleLength), 'f')
     val labels: INDArray = Nd4j.create(Array[Int](currMiniBatchSize, validCharacters.length, exampleLength ), 'f')
@@ -148,46 +133,91 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, rng: Ra
     }
   }
 
+  /**
+   * @return input columns size.
+   */
   override def inputColumns(): Int = validCharacters.length
 
+  /**
+   * @return output columns size.
+   */
   override def totalOutcomes(): Int = validCharacters.length
 
+  /**
+   * @return true because iterator can be reset.
+   */
   override def resetSupported(): Boolean = true
 
+  /**
+   * @return true because iterator supports async.
+   */
   override def asyncSupported(): Boolean = true
 
+  /** Resets the iterator */
   override def reset(): Unit = {
     exampleStartOffsets.clear()
     initializeOffsets()
   }
+
   private def initializeOffsets(): Unit = {
-    // This defines the order in which parts of the file are fetched
     val nMiniBatchesPerEpoch = (fileCharacters.length - 1) / exampleLength - 2 // -2: for end index, and for partial
     for(i <- 0 until nMiniBatchesPerEpoch) {
       exampleStartOffsets.add(i*exampleLength)
     }
+    val rng = new Random()
     Collections.shuffle(exampleStartOffsets, rng)
   }
 
+  /**
+   * @return Batch size.
+   */
   override def batch(): Int = miniBatchSize
 
+  /**
+   * @throws UnsupportedOperationException because it is not implemented.
+   * @param dataSetPreProcessor Dataset preprocessor object.
+   */
   override def setPreProcessor(dataSetPreProcessor: DataSetPreProcessor): Unit =
     throw new UnsupportedOperationException(notImplementedString)
 
+  /**
+   * @throws UnsupportedOperationException because it is not implemented.
+   * @return Dataset preprocessor object.
+   */
   override def getPreProcessor: DataSetPreProcessor =
     throw new UnsupportedOperationException(notImplementedString)
 
+  /**
+   * @throws UnsupportedOperationException because it is not implemented.
+   * @return Dataset preprocessor object.
+   */
   override def getLabels: util.List[String] =
     throw new UnsupportedOperationException(notImplementedString)
 
+  /**
+   * @return True if there is more datasets available for the current training data.
+   */
   override def hasNext: Boolean = exampleStartOffsets.size() > 0
 
+  /**
+   * @return The next dataset.
+   */
   override def next(): DataSet = next(miniBatchSize)
 
+  /** Transform a character into an index from the dictionary map.
+   *
+   * @param c Character to convert into index integer value.
+   * @return Index in dictionary map.
+   */
   def convertCharacterToIndex(c: Char ): Int = {
     charToIdxMap.get(c)
   }
 
+  /** Transfor an integer from the character dictionary map object into a character.
+   *
+   * @param idx Index to convert into character.
+   * @return Character.
+   */
   def convertIndexToChar(idx: Int): Char = {
       validCharacters(idx)
   }
