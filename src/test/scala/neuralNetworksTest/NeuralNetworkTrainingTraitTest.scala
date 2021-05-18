@@ -15,7 +15,7 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
   val negativeIntExceptionMessage = "Int param value can not be less than 0"
   val emptyListExceptionMessage = "List can not be empty"
   val fileNotFoundMessage = "File not found"
-  val fileNotFoundGetDataMessage = ".\\data(generated)\\asdadnaskjda.txt (The system cannot find the file specified)"
+  val fileNotFoundGetDataMessage = ".\\data(generated)\\asdadnaskjda.txt"
 
 
   @Test
@@ -27,8 +27,7 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
     }
     catch {
       case exception: FileNotFoundException =>
-//        assertEquals(fileNotFoundGetDataMessage, exception.getMessage)
-        assertEquals(exception.getClass, FileNotFoundException)
+        assertTrue(exception.getMessage.contains(fileNotFoundGetDataMessage))
     }
     // Get txt file
     val testFile: String = "testFile"
@@ -66,9 +65,8 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
     }
     catch {
       case exception: FileNotFoundException =>
-//        val engMsg = ".\\models\\Noexistelaruta\\notARealPathAction.zip (The system cannot find the path specified)"
-//        assertEquals(engMsg, exception.getMessage)
-        assertEquals(exception.getClass, FileNotFoundException)
+        val msg = ".\\models\\Noexistelaruta\\notARealPathAction.zip"
+        assertTrue(exception.getMessage.contains(msg))
     }
 
     val goodPath = "./goodPath"
