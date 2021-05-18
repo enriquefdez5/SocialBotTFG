@@ -135,11 +135,8 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
     val postCommand = new PostCommand()
     postCommand.execute(twitterUsername, twitterConf)
     val twitter = getTwitterClient(twitterConf)
-    logger.info("-------------")
-    logger.info(twitter.getHomeTimeline().get(0).getCreatedAt.toString)
-    logger.info(currentDate.toString)
-    logger.info("-------------")
-    assertTrue(twitter.getHomeTimeline().get(0).getCreatedAt.after(currentDate))
+    logger.info((twitter.getHomeTimeline().get(0).getCreatedAt.compareTo(currentDate) >= 0).toString)
+    assertTrue(twitter.getHomeTimeline().get(0).getCreatedAt.compareTo(currentDate) >= 0)
 
     // Tests not executed to not disturb Twitter users who gets their tweets retweeted or replied.
 //    // rtAction
