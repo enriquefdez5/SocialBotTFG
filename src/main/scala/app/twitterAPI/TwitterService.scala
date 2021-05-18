@@ -28,11 +28,11 @@ object TwitterService extends Logging with TwitterClientTrait with ValidationsUt
    * @param conf, ConfigRun. Object built to interact with Twitter API.
    */
   def executeAction(twitterUsername: String, nNActionItem: NNActionItem, conf: ConfigRun): Unit = {
-    val date = buildDate(nNActionItem.dayOfWeek, nNActionItem.hourOfDay)
+    val date = buildDate(nNActionItem.day.get, nNActionItem.hour.get)
     logger.info("Next action will be executed at '" + date.toString + "'.")
     val now = getCalendarInstance.getTime
     if (waitForDate(date, now)) {
-      nNActionItem.action.execute(twitterUsername, conf)
+      nNActionItem.commandTrait.get.execute(twitterUsername, conf)
       waitForNextAction()
     }
   }

@@ -1,9 +1,8 @@
 package neuralNetworks.rnnCharacterGenerator
 
 import java.util.{Properties, Random}
+import java.util
 import scala.annotation.tailrec
-
-
 import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.nn.conf.BackpropType
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
@@ -14,18 +13,17 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.BooleanIndexing
 import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-
 import app.twitterAPI.ConfigRun
-
 import neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem, NeuralNetworkTrainingTrait}
-
 import utilities.console.ConsoleUtilTrait
+import utilities.fileManagement.FileWriterUtilTrait
 import utilities.properties.PropertiesReaderUtilTrait
+import scala.collection.JavaConversions._
 
 
 /** Object with main method for executing main text neural network training. */
 object MainNNCharacterGenerator extends Logging with ConsoleUtilTrait with PropertiesReaderUtilTrait
-                                with NeuralNetworkTrainingTrait {
+                                with NeuralNetworkTrainingTrait with FileWriterUtilTrait {
 
   /** Main method for text neural network training.
    *
@@ -56,6 +54,21 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilTrait with Prope
     val idx = 0
     fitAndSample(net, trainingIter, rng, generationInitialization, trainingConfItem, idx)
 
+    // --------------------------------
+    /**
+     * Delete this after testing
+     */
+    val numberOfSamples = 200
+    val numberOfCharacters = 200
+    val sampleList: util.ArrayList[String] = new util.ArrayList[String]()
+
+    for (i <- 0 until numberOfSamples) {
+      sampleList.add(sampleCharactersFromNetwork("", net, trainingIter, new Random(), numberOfCharacters)+"\n\n\n")
+    }
+    writeDataOnAFile(sampleList, "./data(generated)/Samples.txt")
+
+
+    // --------------------------------
     val netType = "Text"
     createPathAndSaveNetwork(net, twitterUsername, netType)
   }
@@ -73,7 +86,7 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilTrait with Prope
   def sampleCharactersFromNetwork(initialization: String, net: MultiLayerNetwork, iter: CharacterGeneratorIterator,
                                   rng: Random, charactersToSample: Int): String = {
 
-    val ownInitialization: String = getCharacter(initialization)
+    val ownInitialization: String = getCharacter(initialization, iter)
 
     val initializationInput: INDArray = getInitializationInput(iter, ownInitialization)
 
@@ -139,9 +152,9 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilTrait with Prope
     new CharacterGeneratorIterator(miniBatchSize, exampleLength, data)
   }
 
-  private def getCharacter(initialization: String): String = {
+  private def getCharacter(initialization: String, iter: CharacterGeneratorIterator): String = {
     if (initialization == null || initialization == "") {
-      "a"
+      iter.getValidCharacters(new Random().nextInt(iter.getValidCharacters.length)).toString
     }
     else {
       initialization

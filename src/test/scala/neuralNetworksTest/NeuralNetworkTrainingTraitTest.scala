@@ -6,7 +6,7 @@ import java.util.Date
 import model.exceptions.{IncorrectSizeListException, NotExistingFileException, WrongParamValueException}
 import model.{NNActionItem, StatusImpl}
 import neuralNetworks.NeuralNetworkTrainingTrait
-import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertTrue}
+import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertThrows, assertTrue}
 import org.junit.jupiter.api.Test
 
 class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
@@ -26,7 +26,9 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
       getData(wrongUsername, true)
     }
     catch {
-      case exception: FileNotFoundException => assertEquals(fileNotFoundGetDataMessage, exception.getMessage)
+      case exception: FileNotFoundException =>
+//        assertEquals(fileNotFoundGetDataMessage, exception.getMessage)
+        assertEquals(exception.getClass, FileNotFoundException)
     }
     // Get txt file
     val testFile: String = "testFile"
@@ -64,8 +66,9 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
     }
     catch {
       case exception: FileNotFoundException =>
-        val msg = ".\\models\\Noexistelaruta\\notARealPathActionzip (The system cannot find the path specified)"
-        assertEquals(msg, exception.getMessage)
+//        val engMsg = ".\\models\\Noexistelaruta\\notARealPathAction.zip (The system cannot find the path specified)"
+//        assertEquals(engMsg, exception.getMessage)
+        assertEquals(exception.getClass, FileNotFoundException)
     }
 
     val goodPath = "./goodPath"
@@ -147,7 +150,7 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
     // Postivive number of characters
     val positiveNumberOfChars = 100
     val initialChar = 1
-    assertEquals(positiveNumberOfChars + initialChar, prepareText("angelmartin_nc", positiveNumberOfChars).length )
+    assertEquals(positiveNumberOfChars + initialChar, prepareText("testModel", positiveNumberOfChars).length )
   }
 
   @Test

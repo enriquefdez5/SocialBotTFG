@@ -497,7 +497,7 @@ class TwitterServiceOperationsTest {
     val action = "Sat Jan 02 15:30:58 CET 2021,,1\n"
     val actionResult = "7,15,1\n"
     val withoutMinus1: Seq[String] = Seq[String](action)
-    assertEquals(actionResult, getTrainableActions(withoutMinus1).head)
+    assertEquals(actionResult, getTra0inableActions(withoutMinus1).head)
 
     // With -1
     val action2 = "Mon Jan 04 15:30:30 CET 2021,,1\n"

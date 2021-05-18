@@ -13,7 +13,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
  * @param weightInit Weight initialization method.
  * @param lossFunction Loss function type.
  * @param activationLSTM Activation function for LSTM network.
- * @param activationRNN Activation function for RNN network.
+// * @param activationRNN Activation function for RNN network.
  * @param l2 L2 regularization value.
  * @param tbpttType Back propagation type.
  * @param tbpttLength Back propagation length.

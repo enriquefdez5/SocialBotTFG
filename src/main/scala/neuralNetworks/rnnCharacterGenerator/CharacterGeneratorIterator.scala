@@ -27,7 +27,7 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, data: A
                                                                                             with ValidationsUtilTrait
                                                                                             with ConsoleUtilTrait {
 
-   val validCharacters = "abcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
+  val validCharacters = "abcdefghijklmnñopqrstuvwxyzáéíóú1234567890\n,.#@ "
 
   val exampleStartOffsets: util.LinkedList[Int] = new util.LinkedList[Int]
 
@@ -220,5 +220,12 @@ class CharacterGeneratorIterator(miniBatchSize: Int, exampleLength: Int, data: A
    */
   def convertIndexToChar(idx: Int): Char = {
       validCharacters(idx)
+  }
+
+  /**
+   * @return Valid characters string.
+   */
+  def getValidCharacters: String = {
+    validCharacters
   }
 }

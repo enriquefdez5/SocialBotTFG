@@ -44,7 +44,7 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
    * @param netType Type of the neural network. It could be Action or Text
    */
   def createPathAndSaveNetwork(net: MultiLayerNetwork, twitterUsername: String, netType: String): Unit = {
-    val networkPath: String = neuralNetworkFolderPath + twitterUsername + netType + "zip"
+    val networkPath: String = neuralNetworkFolderPath + twitterUsername + netType + ".zip"
     saveNetwork(net, networkPath)
   }
 
@@ -356,9 +356,9 @@ trait NeuralNetworkTrainingTrait extends Logging with ValidationsUtilTrait with 
   private def addInputToArray(inputArray: INDArray, status: StatusImpl, idx: Long): Unit = {
     val nnActionItem: NNActionItem = statusToNNActionItem(status)
 
-    inputArray.putScalar(Array[Long](idx, 0, 0), nnActionItem.dayOfWeek.toLong / 7.0)
-    inputArray.putScalar(Array[Long](idx, 1, 0), nnActionItem.hourOfDay.toLong / 23.0)
-    inputArray.putScalar(Array[Long](idx, 2, 0), nnActionItem.action.value / 3.0)
+    inputArray.putScalar(Array[Long](idx, 0, 0), nnActionItem.day.get.toLong / 7.0)
+    inputArray.putScalar(Array[Long](idx, 1, 0), nnActionItem.hour.get.toLong / 23.0)
+    inputArray.putScalar(Array[Long](idx, 2, 0), nnActionItem.commandTrait.get.value / 3.0)
   }
 
   private def getNoInitializationString : String = {

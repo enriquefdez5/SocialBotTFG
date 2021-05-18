@@ -84,8 +84,8 @@ FileReaderUtilTrait with NeuralNetworkTrainingTrait with DatesUtilTrait {
                                                                   actionExecutionData.followedPostActionsCount,
                                                                   actionExecutionData.maxFollowedPostActions,
                                                                   lastTweet)
-      val isPostAction: Boolean = newTypeAndDateAction.action.value == 1
-      val isAtSameHour = newTypeAndDateAction.hourOfDay == lastTypeAndDate.hourOfDay
+      val isPostAction: Boolean = newTypeAndDateAction.commandTrait.get.value == 1
+      val isAtSameHour = newTypeAndDateAction.hour.get == lastTypeAndDate.hour.get
 
       if (isAtSameHour) {
         if (actionExecutionData.sameHourCount < actionExecutionData.meanActionsPerHour) {

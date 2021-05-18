@@ -127,7 +127,7 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
   @Test
   def executeActionTest(): Unit = {
     val twitterConf: ConfigRun = getConfItem()
-    val twitterUsername = "angelmartin_nc"
+    val twitterUsername = "testModel"
 
 
     // post action
