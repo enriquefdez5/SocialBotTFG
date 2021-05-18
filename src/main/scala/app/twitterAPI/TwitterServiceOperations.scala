@@ -1,6 +1,5 @@
 package app.twitterAPI
 
-import java.text.SimpleDateFormat
 import java.util
 import java.util.Random
 
@@ -283,7 +282,7 @@ object TwitterServiceOperations extends Logging with TwitterClientTrait with Val
     checkNotEmptySeq(actionTrainingTweets)
     var lastDay = 0
     val calendar = getCalendarInstance
-    val parser = new SimpleDateFormat(getAPIPattern)
+    val parser = getSimpleDateFormat(getAPIPattern)
 
     val newActionTrainableSeq: util.ArrayList[String] = new util.ArrayList[String]()
     actionTrainingTweets.map(action => {
@@ -343,7 +342,7 @@ object TwitterServiceOperations extends Logging with TwitterClientTrait with Val
     checkNotEmptySeq(actions)
 
     val calendar = getCalendarInstance
-    val parser = new SimpleDateFormat(getAPIPattern)
+    val parser = getSimpleDateFormat(getAPIPattern)
     actions.map(action => {
       if (action != "-1\n") {
         val splitAction = action.split(getCSVSeparator)

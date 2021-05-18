@@ -25,7 +25,7 @@ class TwitterServiceOperationsTest {
   val thisIsARtText: String = "This is a rt post"
   val tweetPost: StatusImpl = StatusImpl(thisIsAPostText, date, notExistingId, notExistingId, null)
   val replyPost: StatusImpl = StatusImpl(thisIsAReplyText, date, notExistingId, existingUserId, null)
-  val rtPost: StatusImpl = StatusImpl(thisIsARtText, date, existingUserId, notExistingId, new StatusImpl
+  val rtPost: StatusImpl = StatusImpl(thisIsARtText, date, existingUserId, notExistingId, StatusImpl
   ("anotherPost", date, notExistingId, notExistingId, null))
 
   val firstTextShard: String = "texto pos 0\ttexto pos 1\ttexto pos " +

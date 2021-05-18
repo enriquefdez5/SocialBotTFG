@@ -1,18 +1,14 @@
 package utilities.dates
 
-import java.text.SimpleDateFormat
+import java.text.{DateFormat, SimpleDateFormat}
 import java.util
-import java.util.{Calendar, Date}
+import java.util.{Calendar, Date, Locale}
 
 import scala.collection.JavaConversions._
-
 import org.apache.logging.log4j.scala.Logging
-
 import model.StatusImpl
 import model.exceptions.WrongParamValueException
-
 import app.twitterAPI.TwitterServiceOperations.{getAllActionsOrderedByDate, getCSVSeparator}
-
 import utilities.validations.ValidationsUtilTrait
 
 
@@ -176,7 +172,8 @@ trait DatesUtilTrait extends Logging with ValidationsUtilTrait {
    */
   def getSimpleDateFormat(pattern: String): SimpleDateFormat = {
     checkNotEmptyString(pattern)
-    new SimpleDateFormat(pattern)
+//    val df = DateFormat.getDateInstance(pattern, Locale.US)
+    new SimpleDateFormat(pattern, Locale.US)
   }
 
   /** Get first day of month for a given date.
