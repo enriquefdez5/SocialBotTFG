@@ -70,8 +70,10 @@ class NeuralNetworkTrainingTraitTest extends NeuralNetworkTrainingTrait {
     }
 
     val goodPath = "./goodPath"
+    val finalPath = "./models/goodPathText.zip"
+//    val goodPath = "./src/test/resources/goodPath"
     createPathAndSaveNetwork(network, goodPath, "Text")
-    assertNotNull(loadNetwork(goodPath))
+    assertNotNull(loadNetwork(finalPath))
   }
 
   @Test

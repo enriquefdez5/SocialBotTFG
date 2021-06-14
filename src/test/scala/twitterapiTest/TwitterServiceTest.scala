@@ -2,15 +2,12 @@ package twitterapiTest
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.{assertEquals, assertNotNull, assertTrue}
-
-import java.util.Date
+import java.util.{Calendar, Date}
 
 import app.twitterAPI.{ConfigRun, TwitterClientTrait}
-
 import app.twitterAPI.TwitterService.{getTweets, getTwintTweets}
 import app.twitterAPI.commandActions.{PostCommand, ReplyCommand, RtCommand}
 import model.exceptions.IncorrectSizeListException
-
 import utilities.dates.DatesUtilTrait
 import utilities.fileManagement.FileReaderUtilTrait
 
@@ -40,11 +37,12 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
     new ConfigRun(args)
   }
 
-
+// This test is commented due to Twint connection exception that usually tooks place.
 //  @Test
 //  def getTwintTweetsTest(): Unit = {
 //    val username = "lec"
-//    val csvFilePath = "./getTwintTweetsTest"
+////    val csvFilePath = "./getTwintTweetsTest"
+//    val csvFilePath = "./src/test/resources/getTwintTweetsTest"
 //    val selectedOption = 1
 //    // Selected option 1
 //    getTwintTweets(username, csvFilePath, selectedOption)
@@ -61,7 +59,8 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
 //    val month = 3
 //    val year = 2021
 //    val date = buildDate(dayOfWeek, hourOfDay, month, year)
-//    val secondCSVPath = "./getTwintTweetsTest2"
+////    val secondCSVPath = "./getTwintTweetsTest2"
+//    val secondCSVPath = "./src/test/resources/getTwintTweetsTest2"
 //    val csvPattern = "yyyy-MM-dd HH:mm:ss"
 //
 //    // Build date formats
@@ -90,7 +89,7 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
 //    assertEquals(0, data3.size())
 //
 //  }
-
+//  This test is commented due to Twint connection exception that usually tooks place.
 //  @Test
 //  def getTweetsTest(): Unit = {
 //    val twitterConf: ConfigRun = getConfItem()
@@ -132,13 +131,17 @@ class TwitterServiceTest extends FileReaderUtilTrait with DatesUtilTrait with Tw
 
     // post action
     val currentDate = new Date()
+    waitForNextAction()
     val postCommand = new PostCommand()
     postCommand.execute(twitterUsername, twitterConf)
     val twitter = getTwitterClient(twitterConf)
-    logger.info((twitter.getHomeTimeline().get(0).getCreatedAt.compareTo(currentDate) >= 0).toString)
-    assertTrue(twitter.getHomeTimeline().get(0).getCreatedAt.compareTo(currentDate) >= 0)
 
-    // Tests not executed to not disturb Twitter users who gets their tweets retweeted or replied.
+    assertTrue(twitter.getHomeTimeline().get(0).getCreatedAt.after(currentDate) || twitter.getHomeTimeline().get(0)
+      .getCreatedAt.compareTo(currentDate) == 0 )
+
+    // This code is not executed due to not disturb Twitter users who gets their tweets retweeted
+    // or replied.
+
 //    // rtAction
 //    val retweetCommand = new RtCommand()
 //    retweetCommand.execute(twitterUsername, twitterConf)

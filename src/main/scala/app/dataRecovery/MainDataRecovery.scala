@@ -42,10 +42,11 @@ object MainDataRecovery extends Logging with FileWriterUtilTrait with FileReader
 
     try {
       getTwintTweets(twitterUsername, twintCSVTweetsPath, selectedOption, date)
+      logger.info("Finishing recovering tweets with Twint.")
     }
     catch {
-      case exception: Exception => logger.error(exception.getMessage)
-        System.exit(0)
+      case exception: Exception => logger.error("There was an exception recovering Twint tweets: " + exception
+        .getMessage)
     }
     val tweets = readCSVFile(twintCSVTweetsPath + twitterUsername + ".csv")
     if (tweets.size() > 0) {
@@ -55,16 +56,23 @@ object MainDataRecovery extends Logging with FileWriterUtilTrait with FileReader
 
       val tweetText = getTweetText(tweets, textColumn, splitSymbol)
 
-      val apiTweets = getTweets(conf, twitterUsername, selectedOption, date)
-      val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
-      val actionsWithWeekSeparator = getActionsWithWeekSeparator(actionTrainingTweets)
-      val trainableActions = getTrainableActions(actionsWithWeekSeparator)
+      try {
+        val apiTweets = getTweets(conf, twitterUsername, selectedOption, date)
+        logger.info("Finishing recovering tweets with Twitter API.")
+        val actionTrainingTweets = getAllActionsOrderedByDate(apiTweets, tweets)
+        val actionsWithWeekSeparator = getActionsWithWeekSeparator(actionTrainingTweets)
+        val trainableActions = getTrainableActions(actionsWithWeekSeparator)
 
-      val filteredTweets = cleanTweets(tweetText, language)
-      val characterTrainingTweets: Seq[String] = addLineBreak(filteredTweets)
+        val filteredTweets = cleanTweets(tweetText, language)
+        val characterTrainingTweets: Seq[String] = addLineBreak(filteredTweets)
 
-      writeDataOnAFile(characterTrainingTweets, generatedTxtPath)
-      writeDataOnAFile(trainableActions, generateCSVPath)
+        writeDataOnAFile(characterTrainingTweets, generatedTxtPath)
+        writeDataOnAFile(trainableActions, generateCSVPath)
+      }
+      catch {
+        case exception: Exception => logger.error("There was an exception recovering Twitter API tweets: " +
+          exception.getMessage)
+      }
     }
     else {
       logger.warn("No tweets were found")

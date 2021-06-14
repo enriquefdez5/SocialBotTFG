@@ -5,7 +5,6 @@ import org.apache.logging.log4j.scala.Logging
 import java.util
 import java.util.{Calendar, Date}
 
-import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.io.StdIn.readLine
 
@@ -42,26 +41,32 @@ trait ConsoleUtilTrait extends Logging with TwitterClientTrait with DatesUtilTra
     readMainMenuOption(args)
   }
 
-  @tailrec
   private def readMainMenuOption(args: Array[String]): Int = {
-    StdIn.readInt() match {
-      case `option1`  => MainDataRecovery.main(args)
-        option1
+    try {
+      StdIn.readInt() match {
+        case `option1` => MainDataRecovery.main(args)
+          option1
 
-      case `option2` => MainNNCharacterGenerator.main(args)
-        option2
+        case `option2` => MainNNCharacterGenerator.main(args)
+          option2
 
-      case `option3` => MainNNActionGenerator.main(args)
-        option3
+        case `option3` => MainNNActionGenerator.main(args)
+          option3
 
-      case `option4` => MainActionExecution.main(args)
-        option4
+        case `option4` => MainActionExecution.main(args)
+          option4
 
-      case `exitOption` => System.exit(1)
-        exitOption
+        case `exitOption` => System.exit(1)
+          exitOption
 
-      case _ =>
-        logger.warn("Not a valid option, try again.")
+        case _ =>
+          logger.warn("Not a valid option, try again.")
+          readMainMenuOption(args)
+      }
+    }
+    catch {
+      case exception: NumberFormatException =>
+        logger.error("Input is not even a number.")
         readMainMenuOption(args)
     }
   }
@@ -80,19 +85,26 @@ trait ConsoleUtilTrait extends Logging with TwitterClientTrait with DatesUtilTra
     readMainDataRecoveryMenuOption(args)
   }
 
-  @tailrec
   private def readMainDataRecoveryMenuOption(args: Array[String]): Int = {
-    StdIn.readInt() match {
-      case `option1` => option1
-      case `option2` => option2
-      case `option3` => showMainMenuOptions(args)
-        -1
-      case `exitOption` => System.exit(1)
-        0
-      case _ =>
-        logger.warn("Not a valid option, try again.\n")
-        readMainDataRecoveryMenuOption(args)
+    try {
+      StdIn.readInt() match {
+        case `option1` => option1
+        case `option2` => option2
+        case `option3` => showMainMenuOptions(args)
+          -1
+        case `exitOption` => System.exit(1)
+          0
+        case _ =>
+          logger.warn("Not a valid option, try again.\n")
+          readMainDataRecoveryMenuOption(args)
+      }
     }
+    catch {
+      case exception: NumberFormatException =>
+        logger.error("Input is not even a number.")
+        readMainMenuOption(args)
+    }
+
   }
 
   /** Ask for date.

@@ -45,8 +45,14 @@ object TwitterService extends Logging with TwitterClientTrait with ValidationsUt
   def postTweet(tweet: String, conf: ConfigRun): Unit = {
     checkNotEmptyString(tweet)
 
-    val twitter = getTwitterClient(conf)
-    twitter.updateStatus(tweet)
+    try {
+      val twitter = getTwitterClient(conf)
+      twitter.updateStatus(tweet)
+    }
+    catch {
+      case exception: TwitterException => logger.error("Something went wrong with Twitter API. Could not post the " +
+        "tweet." + exception.getMessage)
+    }
   }
 
   /** Retweet a tweet.
@@ -78,12 +84,17 @@ object TwitterService extends Logging with TwitterClientTrait with ValidationsUt
     checkNotNegativeLong(mostRepliedUserId)
     checkNotNegativeLong(replyTweetId)
 
-    val twitter = getTwitterClient(conf)
-    val username = "@" + twitter.showUser(mostRepliedUserId).getName + ". "
-    val fullTweet = username + tweet
-    val statusUpdate: StatusUpdate = new StatusUpdate(fullTweet).inReplyToStatusId(replyTweetId)
-
-    twitter.updateStatus(statusUpdate)
+    try {
+      val twitter = getTwitterClient(conf)
+      val username = "@" + twitter.showUser(mostRepliedUserId).getName + ". "
+      val fullTweet = username + tweet
+      val statusUpdate: StatusUpdate = new StatusUpdate(fullTweet).inReplyToStatusId(replyTweetId)
+      twitter.updateStatus(statusUpdate)
+    }
+    catch {
+      case exception: TwitterException => logger.error("Something went wrong with Twitter API. Could not post the " +
+        "tweet." + exception.getMessage)
+    }
   }
 
 
@@ -98,6 +109,7 @@ object TwitterService extends Logging with TwitterClientTrait with ValidationsUt
    */
   def getTwintTweets(twitterUsername: String, csvFileNamePath: String, selectedOption: Int, date: Date = new Date())
   : String = {
+    logger.info("Recovering tweets with Twint app.")
     selectedOption match {
       case 1 =>
           val command = "twint -u " + twitterUsername + " -o " + csvFileNamePath + twitterUsername + ".csv --csv"
@@ -128,7 +140,7 @@ object TwitterService extends Logging with TwitterClientTrait with ValidationsUt
     checkNotEmptyString(twitterUsername)
     val pageInit = 1
     val twitter = getTwitterClient(conf)
-    logger.info("Recovering tweets from Twitter.")
+    logger.info("Recovering tweets with Twitter API.")
     val tweets = getTweetsFromSelectedOption(twitter, pageInit, twitterUsername, Seq(), selectedOption, date)
     statusesToStatusImpl(tweets)
   }

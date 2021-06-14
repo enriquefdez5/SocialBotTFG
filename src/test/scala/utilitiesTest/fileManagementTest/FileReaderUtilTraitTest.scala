@@ -12,7 +12,7 @@ class FileReaderUtilTraitTest extends FileReaderUtilTrait {
   @Test
   def readCSVFileTest(): Unit = {
     // Existing file
-    val csvContent = readCSVFile("./data(manual)/ibaiLLanos.csv")
+    val csvContent = readCSVFile("./data(manual)/testCSVFile.csv")
     assertNotNull(csvContent)
     assertEquals(
       "id	conversation_id	created_at	date	time	timezone	user_id	username	name	place	tweet	language	" +

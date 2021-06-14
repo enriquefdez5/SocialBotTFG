@@ -1,7 +1,9 @@
 package neuralNetworks.rnnCharacterGenerator
 
+import java.io.FileNotFoundException
 import java.util.{Properties, Random}
 import java.util
+
 import scala.annotation.tailrec
 import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.nn.conf.BackpropType
@@ -18,6 +20,7 @@ import neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem, Neu
 import utilities.console.ConsoleUtilTrait
 import utilities.fileManagement.FileWriterUtilTrait
 import utilities.properties.PropertiesReaderUtilTrait
+
 import scala.collection.JavaConversions._
 
 
@@ -43,34 +46,26 @@ object MainNNCharacterGenerator extends Logging with ConsoleUtilTrait with Prope
     val rng = new Random(confItem.seed)
 
     val isText = true
-    val splitData = getData(twitterUsername, isText)
+    try {
+      val splitData = getData(twitterUsername, isText)
 
-    val trainingIter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
-                                                                               trainingConfItem.exampleLength,
-                                                                               splitData)
+      val trainingIter: CharacterGeneratorIterator = getCharacterExampleIterator(trainingConfItem.miniBatchSize,
+        trainingConfItem.exampleLength,
+        splitData)
 
-    val net = createAndConfigureNetwork(trainingIter, confItem)
+      val net = createAndConfigureNetwork(trainingIter, confItem)
 
-    val idx = 0
-    fitAndSample(net, trainingIter, rng, generationInitialization, trainingConfItem, idx)
+      val idx = 0
+      fitAndSample(net, trainingIter, rng, generationInitialization, trainingConfItem, idx)
 
-    // --------------------------------
-    /**
-     * Delete this after testing
-     */
-    val numberOfSamples = 200
-    val numberOfCharacters = 200
-    val sampleList: util.ArrayList[String] = new util.ArrayList[String]()
-
-    for (i <- 0 until numberOfSamples) {
-      sampleList.add(sampleCharactersFromNetwork("", net, trainingIter, new Random(), numberOfCharacters)+"\n\n\n")
+      val netType = "Text"
+      createPathAndSaveNetwork(net, twitterUsername, netType)
     }
-    writeDataOnAFile(sampleList, "./data(generated)/Samples.txt")
-
-
-    // --------------------------------
-    val netType = "Text"
-    createPathAndSaveNetwork(net, twitterUsername, netType)
+    catch {
+      case exceptionFNF: FileNotFoundException => logger.error("File not found. Data was not found. " +
+        exceptionFNF.getMessage)
+      case exception: Exception => logger.error("There was an error" + exception.getMessage)
+    }
   }
 
 

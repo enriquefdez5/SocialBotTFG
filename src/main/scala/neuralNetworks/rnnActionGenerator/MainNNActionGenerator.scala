@@ -1,9 +1,10 @@
 package neuralNetworks.rnnActionGenerator
 
+import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit
 import java.util.Properties
-import scala.annotation.tailrec
 
+import scala.annotation.tailrec
 import org.apache.logging.log4j.scala.Logging
 import org.deeplearning4j.earlystopping.{EarlyStoppingConfiguration, EarlyStoppingResult}
 import org.deeplearning4j.earlystopping.saver.LocalFileModelSaver
@@ -17,11 +18,8 @@ import org.nd4j.evaluation.regression.RegressionEvaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
-
 import app.twitterAPI.ConfigRun
-
 import neuralNetworks.{NeuralNetworkConfItem, NeuralNetworkTrainingConfItem, NeuralNetworkTrainingTrait}
-
 import utilities.console.ConsoleUtilTrait
 import utilities.properties.PropertiesReaderUtilTrait
 
@@ -44,47 +42,54 @@ object MainNNActionGenerator extends Logging with ConsoleUtilTrait with Properti
     val trainingConfItem: NeuralNetworkTrainingConfItem = createNeuralNetworkTrainingConfItem(getProperties)
 
     val isTextFile = false
-    val splitData = getData(twitterUsername, isTextFile)
+    try {
+      val splitData = getData(twitterUsername, isTextFile)
 
-    val splitSize: Int = (splitData.length * 80) / 100
-    val trainingData = getTrainingData(splitData, splitSize)
-    val testingData = getTestData(splitData, splitSize)
+      val splitSize: Int = (splitData.length * 80) / 100
+      val trainingData = getTrainingData(splitData, splitSize)
+      val testingData = getTestData(splitData, splitSize)
 
-    val trainingIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
-                                                   trainingConfItem.exampleLength,
-                                                   trainingData)
-    val testIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
-                                               trainingConfItem.exampleLength,
-                                               testingData)
+      val trainingIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
+        trainingConfItem.exampleLength,
+        trainingData)
+      val testIter = new ActionGeneratorIterator(trainingConfItem.miniBatchSize,
+        trainingConfItem.exampleLength,
+        testingData)
 
-    val net: MultiLayerNetwork = createAndConfigureNetwork(trainingIter, confItem)
+      val net: MultiLayerNetwork = createAndConfigureNetwork(trainingIter, confItem)
 
-    val maxEpochNumber = 1000
-    val maxTimeAmount = 300
-    val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = new EarlyStoppingConfiguration.Builder()
-      .epochTerminationConditions(new MaxEpochsTerminationCondition(maxEpochNumber))
-      .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
-      .scoreCalculator(new DataSetLossCalculator(testIter, true))
-      .evaluateEveryNEpochs(1)
-      .modelSaver(new LocalFileModelSaver("./models/"))
-      .build()
+      val maxEpochNumber = 80
+      val maxTimeAmount = 240
+      val esConf: EarlyStoppingConfiguration[MultiLayerNetwork] = new EarlyStoppingConfiguration.Builder()
+        .epochTerminationConditions(new MaxEpochsTerminationCondition(maxEpochNumber))
+        .iterationTerminationConditions(new MaxTimeIterationTerminationCondition(maxTimeAmount, TimeUnit.MINUTES))
+        .scoreCalculator(new DataSetLossCalculator(testIter, true))
+        .evaluateEveryNEpochs(1)
+        .modelSaver(new LocalFileModelSaver("./models/"))
+        .build()
 
-    val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
-    val result: EarlyStoppingResult[MultiLayerNetwork] = trainer.fit()
+      val trainer: EarlyStoppingTrainer = new EarlyStoppingTrainer(esConf, net, trainingIter)
+      val result: EarlyStoppingResult[MultiLayerNetwork] = trainer.fit()
 
-    logger.info("Termination reason: " + result.getTerminationReason)
-    logger.info("Termination details: " + result.getTerminationDetails)
-    logger.info("Total epochs: " + result.getTotalEpochs)
-    logger.info("Best epoch number: " + result.getBestModelEpoch)
-    logger.info("Score at best epoch: " + result.getBestModelScore)
+      logger.info("Termination reason: " + result.getTerminationReason)
+      logger.info("Termination details: " + result.getTerminationDetails)
+      logger.info("Total epochs: " + result.getTotalEpochs)
+      logger.info("Best epoch number: " + result.getBestModelEpoch)
+      logger.info("Score at best epoch: " + result.getBestModelScore)
 
-    val bestModel: MultiLayerNetwork = result.getBestModel
+      val bestModel: MultiLayerNetwork = result.getBestModel
 
-    val regEval = evaluateNet(bestModel, testIter)
-    logger.info("Training results:" + getSplitSymbol + regEval.stats())
+      val regEval = evaluateNet(bestModel, testIter)
+      logger.info("Training results:" + getSplitSymbol + regEval.stats())
 
-    val netType: String = "Action"
-    createPathAndSaveNetwork(net, twitterUsername, netType)
+      val netType: String = "Action"
+      createPathAndSaveNetwork(net, twitterUsername, netType)
+    }
+    catch {
+      case exceptionFNF: FileNotFoundException => logger.error("File not found. Data was not found. " +
+        exceptionFNF.getMessage)
+      case exception: Exception => logger.error("There was an error" + exception.getMessage)
+    }
   }
 
 

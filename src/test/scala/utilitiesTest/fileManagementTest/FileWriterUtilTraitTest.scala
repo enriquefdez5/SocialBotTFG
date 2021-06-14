@@ -24,7 +24,8 @@ class FileWriterUtilTraitTest extends FileWriterUtilTrait {
     assertTrue(file.exists())
 
     // Writing data on non existing file
-    val wrongFileRoute = "NonExistingFileRoute.txt"
+//    val wrongFileRoute = ".NonExistingFileRoute.txt"
+    val wrongFileRoute = "./src/test/resources/NonExistingFileRoute.txt"
     try {
       writeDataOnAFile(data, wrongFileRoute)
     }
