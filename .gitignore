@@ -1,12 +1,5 @@
 /target/
 /.idea/
-/logs/
-data(manual)/
-data(generated)/
-models/
-#data(manual)/external/datasetTexto.txt
 MvnAIBehaviour.iml
 scalastyle_config.xml
-scalastyle-output.xml
-credentials.properties
 /.zip/
