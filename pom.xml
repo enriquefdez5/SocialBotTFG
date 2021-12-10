@@ -19,7 +19,7 @@
         <twitter4j.version>4.0.7</twitter4j.version>
         <deeplearning4j.version>1.0.0-beta6</deeplearning4j.version>
         <nd4j.version>1.0.0-beta6</nd4j.version>
-        <log4j.version>2.14.1</log4j.version>
+        <log4j.version>2.15.0</log4j.version>
         <log4j.core.version>2.14.1</log4j.core.version>
     </properties>
 
